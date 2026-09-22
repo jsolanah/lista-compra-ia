@@ -64,9 +64,8 @@ if procesar and archivo_pdf:
 
         except json.JSONDecodeError:
             st.error("No se ha podido interpretar la respuesta. Inténtalo de nuevo.")
-        except Exception as e:  # noqa: BLE001 - no exponemos detalles internos en un entorno público
-            print(f"[ERROR generar_lista_compra]: {e}")
-            st.error("Ha ocurrido un error al generar la lista. Inténtalo de nuevo más tarde.")
+        except Exception as e:
+            st.error(f"⚠️ Error detallado: {e}")
 
 
 # --------------------------------------------------------------------------
