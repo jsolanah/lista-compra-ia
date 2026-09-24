@@ -20,9 +20,9 @@ from src.pdf_utils import extraer_texto_pdf
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
 
 
-_executor = ThreadPoolExecutor(max_workers=2)
-_jobs: dict[str, Future] = {}
-_jobs_lock = threading.Lock()
+@st.cache_resource
+def _obtener_almacen_trabajos() -> tuple[ThreadPoolExecutor, dict[str, Future], threading.Lock]:
+    return ThreadPoolExecutor(max_workers=2), {}, threading.Lock()
 
 
 def _procesar_dieta(pdf_bytes: bytes, api_key: str, modelo: str) -> dict:
@@ -33,16 +33,18 @@ def _procesar_dieta(pdf_bytes: bytes, api_key: str, modelo: str) -> dict:
 
 
 def _iniciar_procesamiento(pdf_bytes: bytes) -> str:
+    executor, jobs, jobs_lock = _obtener_almacen_trabajos()
     job_id = uuid4().hex
-    future = _executor.submit(_procesar_dieta, pdf_bytes, GEMINI_API_KEY, GEMINI_MODEL)
-    with _jobs_lock:
-        _jobs[job_id] = future
+    future = executor.submit(_procesar_dieta, pdf_bytes, GEMINI_API_KEY, GEMINI_MODEL)
+    with jobs_lock:
+        jobs[job_id] = future
     return job_id
 
 
 def _obtener_trabajo(job_id: str) -> Future | None:
-    with _jobs_lock:
-        return _jobs.get(job_id)
+    _, jobs, jobs_lock = _obtener_almacen_trabajos()
+    with jobs_lock:
+        return jobs.get(job_id)
 
 
 # --------------------------------------------------------------------------
