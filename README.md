@@ -48,6 +48,37 @@ Dieta/
 
 ## Ejecución
 
+### Despliegue local en Windows
+
+Desde PowerShell, situado en la carpeta raíz del proyecto:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+Crea un archivo `.env` en esa misma carpeta con la configuración de Gemini:
+
+```env
+GEMINI_API_KEY=tu_clave_de_gemini
+GEMINI_MODEL=gemini-3.6-flash
+```
+
+Inicia la aplicación con Streamlit:
+
+```powershell
+streamlit run app.py
+```
+
+La aplicación estará disponible en `http://localhost:8501`. Debe iniciarse
+con `streamlit run app.py`, no con `python app.py`.
+
+La base de datos local se crea automáticamente en
+`data/listas_compra.db` al guardar la primera lista.
+
+### Ejecución rápida
+
 ```
 streamlit run app.py
 ```
