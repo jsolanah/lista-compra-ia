@@ -5,6 +5,9 @@ Usa Gemini (google-generativeai) para extraer y consolidar ingredientes.
 
 import io
 import json
+import threading
+from concurrent.futures import Future, ThreadPoolExecutor
+from uuid import uuid4
 
 import streamlit as st
 
@@ -14,6 +17,31 @@ from src.gemini_client import generar_lista_compra
 from src.pdf_utils import extraer_texto_pdf
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
+
+
+_executor = ThreadPoolExecutor(max_workers=2)
+_jobs: dict[str, Future] = {}
+_jobs_lock = threading.Lock()
+
+
+def _procesar_dieta(pdf_bytes: bytes, api_key: str, modelo: str) -> dict:
+    texto_dieta = extraer_texto_pdf(io.BytesIO(pdf_bytes))
+    if not texto_dieta.strip():
+        raise ValueError("No se ha podido extraer texto del PDF. ¿Es un PDF escaneado como imagen?")
+    return generar_lista_compra(texto_dieta, api_key, modelo)
+
+
+def _iniciar_procesamiento(pdf_bytes: bytes) -> str:
+    job_id = uuid4().hex
+    future = _executor.submit(_procesar_dieta, pdf_bytes, GEMINI_API_KEY, GEMINI_MODEL)
+    with _jobs_lock:
+        _jobs[job_id] = future
+    return job_id
+
+
+def _obtener_trabajo(job_id: str) -> Future | None:
+    with _jobs_lock:
+        return _jobs.get(job_id)
 
 
 # --------------------------------------------------------------------------
@@ -48,24 +76,41 @@ if procesar and archivo_pdf:
     if not GEMINI_API_KEY:
         st.error("El servicio no está disponible en este momento. Inténtalo más tarde.")
     else:
+        st.session_state.generation_job_id = _iniciar_procesamiento(archivo_pdf.getvalue())
+        st.session_state.lista_compra = None
+        st.session_state.checks = {}
+
+
+if "generation_job_id" not in st.session_state:
+    st.session_state.generation_job_id = None
+
+
+generation_job_id = st.session_state.generation_job_id
+if generation_job_id:
+
+    @st.fragment(run_every="2s")
+    def mostrar_estado_generacion():
+        future = _obtener_trabajo(generation_job_id)
+        if future is None:
+            st.error("Se ha perdido el proceso de generación. Vuelve a intentarlo.")
+            return
+        if not future.done():
+            st.info("⏳ Generando la lista... Puedes bloquear el teléfono; el proceso continúa en el servidor.")
+            return
+
         try:
-            with st.spinner("📄 Extrayendo texto del PDF..."):
-                texto_dieta = extraer_texto_pdf(io.BytesIO(archivo_pdf.getvalue()))
-
-            if not texto_dieta.strip():
-                st.error("No se ha podido extraer texto del PDF. ¿Es un PDF escaneado como imagen?")
-            else:
-                with st.spinner("🤖 Analizando la dieta..."):
-                    datos = generar_lista_compra(texto_dieta, GEMINI_API_KEY, GEMINI_MODEL)
-
-                st.session_state.lista_compra = datos
-                st.session_state.checks = {}
-                st.success("¡Lista de la compra generada correctamente!")
-
+            st.session_state.lista_compra = future.result()
+            st.session_state.checks = {}
+            st.session_state.generation_job_id = None
+            st.rerun()
         except json.JSONDecodeError:
+            st.session_state.generation_job_id = None
             st.error("No se ha podido interpretar la respuesta. Inténtalo de nuevo.")
         except Exception as e:
+            st.session_state.generation_job_id = None
             st.error(f"⚠️ Error detallado: {e}")
+
+    mostrar_estado_generacion()
 
 
 # --------------------------------------------------------------------------
