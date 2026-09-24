@@ -53,7 +53,9 @@ if procesar and archivo_pdf:
         st.session_state.generation_job_id = None
         st.info("Dieta encontrada. Se han recuperado el plan y la lista guardados.")
     elif not GEMINI_API_KEY:
-        st.error("El servicio no está disponible en este momento. Inténtalo más tarde.")
+        st.error(
+            "Falta configurar GEMINI_API_KEY en los Secrets de Streamlit Cloud."
+        )
     else:
         st.session_state.generation_job_id = iniciar_procesamiento(archivo_pdf.getvalue(), nombre_pdf)
         st.session_state.lista_compra = None
