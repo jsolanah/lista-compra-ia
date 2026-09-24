@@ -1,8 +1,8 @@
 # 🛒 Lista de la Compra Inteligente
 
 Aplicación en Streamlit que analiza un PDF de dieta con Gemini y genera una
-lista de la compra clasificada por categorías, con cantidades consolidadas
-y checkboxes para marcar lo comprado.
+lista de la compra clasificada por categorías, con cantidades consolidadas,
+el plan de comidas semanal y checkboxes para marcar lo comprado.
 
 ## Estructura del proyecto
 
@@ -96,7 +96,7 @@ data/listas_compra.db
 Cada registro contiene:
 
 - El nombre normalizado del PDF.
-- La lista de la compra generada en formato JSON.
+- La lista de la compra y el plan de comidas semanal generados en formato JSON.
 - La fecha de generación.
 
 Antes de llamar a Gemini, la aplicación consulta esta base de datos. Si ya
@@ -120,9 +120,10 @@ y no contiene la API key.
 
 1. Sube tu PDF de dieta desde la barra lateral.
 2. Pulsa **Generar lista de la compra**.
-3. Revisa la lista clasificada por categorías (🥩 Carne, 🐟 Pescado, 🥦 Verduras...).
-4. Marca los checkboxes de lo que ya tengas o vayas comprando.
-5. Descarga la lista final con el botón de exportar a `.txt`.
+3. Revisa las tablas del plan de comidas de cada semana.
+4. Revisa la lista clasificada por categorías (🥩 Carne, 🐟 Pescado, 🥦 Verduras...).
+5. Marca los checkboxes de lo que ya tengas o vayas comprando.
+6. Descarga la lista final con el botón de exportar a `.txt`.
 
 ## Despliegue público
 

@@ -21,6 +21,9 @@ Tu tarea:
 3. Clasifica cada ingrediente consolidado en UNA de estas categorías exactas:
 {categorias_lista}
 4. Ignora texto que no sean ingredientes (instrucciones, cabeceras, títulos, calorías, etc.).
+5. Extrae también las tablas del plan de comidas. Conserva todas las semanas, días y
+  comidas que aparezcan, respetando el texto y el orden del documento. No inventes
+  comidas que no estén en el PDF.
 
 Devuelve EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin markdown, sin ```)
 con esta estructura exacta:
@@ -33,11 +36,26 @@ con esta estructura exacta:
         {{"ingrediente": "Pechuga de pollo", "cantidad": "500 g"}}
       ]
     }}
+  ],
+  "plan_semanal": [
+    {{
+      "semana": "Semana 1",
+      "dias": [
+        {{
+          "dia": "Lunes",
+          "comidas": [
+            {{"tipo": "Desayuno", "descripcion": "Avena con fruta"}},
+            {{"tipo": "Comida", "descripcion": "Pollo con arroz"}}
+          ]
+        }}
+      ]
+    }}
   ]
 }}
 
 Incluye solo las categorías que tengan al menos un ingrediente. No inventes ingredientes
-que no estén respaldados por el texto.
+que no estén respaldados por el texto. Incluye solo semanas y días presentes en las
+tablas; si no hay tablas de comidas, devuelve "plan_semanal": [].
 
 TEXTO DE LA DIETA:
 \"\"\"

@@ -47,11 +47,11 @@ st.caption("Sube el PDF de tu dieta y deja que la IA construya tu lista, clasifi
 if procesar and archivo_pdf:
     nombre_pdf = normalizar_nombre_pdf(archivo_pdf.name)
     lista_guardada = obtener_lista(nombre_pdf)
-    if lista_guardada is not None:
+    if lista_guardada is not None and "plan_semanal" in lista_guardada:
         st.session_state.lista_compra = lista_guardada
         st.session_state.checks = {}
         st.session_state.generation_job_id = None
-        st.info("Dieta encontrada, generando los datos.")
+        st.info("Dieta encontrada. Se han recuperado el plan y la lista guardados.")
     elif not GEMINI_API_KEY:
         st.error("El servicio no está disponible en este momento. Inténtalo más tarde.")
     else:
@@ -101,6 +101,29 @@ if generation_job_id:
 datos = st.session_state.lista_compra
 
 if datos:
+    plan_semanal = datos.get("plan_semanal", [])
+    if plan_semanal:
+        st.divider()
+        st.subheader("🍽️ Plan de comidas")
+        st.caption("Consulta las comidas previstas para cada día de tu dieta.")
+
+        for semana in plan_semanal:
+            nombre_semana = semana.get("semana", "Semana")
+            filas = []
+            for dia in semana.get("dias", []):
+                comidas = dia.get("comidas", [])
+                texto_comidas = "\n".join(
+                    f"{comida.get('tipo', 'Comida')}: {comida.get('descripcion', '')}"
+                    for comida in comidas
+                    if comida.get("descripcion")
+                )
+                if texto_comidas:
+                    filas.append({"Día": dia.get("dia", ""), "Comidas": texto_comidas})
+
+            if filas:
+                with st.expander(nombre_semana, expanded=True):
+                    st.table(filas)
+
     st.divider()
     st.subheader("📋 Tu lista de la compra")
 
