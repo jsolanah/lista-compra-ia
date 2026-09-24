@@ -6,16 +6,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# La API Key y el modelo se gestionan en el servidor: nunca se exponen en la UI
-# pública para evitar que cualquier visitante consuma o cambie la configuración.
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
-if GEMINI_MODEL in {
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-2.5-flash",
-}:
-    GEMINI_MODEL = "gemini-3.6-flash"
+# La API key y el modelo se gestionan en el servidor: nunca se exponen en la
+# interfaz pública.
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
 
 CATEGORIAS = [
     "🥩 Carne",

@@ -1,8 +1,8 @@
-"""Comunicación con la API de Gemini: prompt, envío y parseo de la respuesta."""
+"""Comunicación con un modelo de Gemini a través de OpenRouter."""
 
 import json
 
-import google.generativeai as genai
+from openai import OpenAI
 
 from src.config import CATEGORIAS
 
@@ -76,8 +76,21 @@ def parsear_respuesta_json(texto_respuesta: str) -> dict:
 
 
 def generar_lista_compra(texto_dieta: str, api_key: str, modelo: str) -> dict:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(modelo)
     prompt = construir_prompt(texto_dieta)
-    respuesta = model.generate_content(prompt)
-    return parsear_respuesta_json(respuesta.text)
+    cliente = OpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1",
+        default_headers={
+            "HTTP-Referer": "http://localhost:8501",
+            "X-Title": "Lista de la Compra Inteligente",
+        },
+    )
+    respuesta = cliente.chat.completions.create(
+        model=modelo,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
+    contenido = respuesta.choices[0].message.content
+    if not contenido:
+        raise ValueError("OpenRouter ha devuelto una respuesta vacía.")
+    return parsear_respuesta_json(contenido)

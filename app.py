@@ -1,6 +1,6 @@
 """
 Generador inteligente de lista de la compra a partir de un PDF de dieta.
-Usa Gemini (google-generativeai) para extraer y consolidar ingredientes.
+Usa Gemini a través de OpenRouter para extraer y consolidar ingredientes.
 """
 
 import json
@@ -8,7 +8,7 @@ import base64
 
 import streamlit as st
 
-from src.config import CATEGORIAS, GEMINI_API_KEY, GEMINI_MODEL
+from src.config import CATEGORIAS, OPENROUTER_API_KEY
 from src.exports.export_utils import exportar_a_texto
 from src.jobs.job_manager import iniciar_procesamiento, obtener_trabajo
 from src.persistence.list_cache import guardar_lista, normalizar_nombre_pdf, obtener_lista
@@ -52,7 +52,7 @@ if procesar and archivo_pdf:
         st.session_state.checks = {}
         st.session_state.generation_job_id = None
         st.info("Dieta encontrada. Se han recuperado el plan y la lista guardados.")
-    elif not GEMINI_API_KEY:
+    elif not OPENROUTER_API_KEY:
         st.error("El servicio no está disponible en este momento. Inténtalo más tarde.")
     else:
         st.session_state.generation_job_id = iniciar_procesamiento(archivo_pdf.getvalue(), nombre_pdf)
