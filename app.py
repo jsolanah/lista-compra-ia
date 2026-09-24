@@ -6,6 +6,7 @@ Usa Gemini (google-generativeai) para extraer y consolidar ingredientes.
 import io
 import json
 import threading
+import base64
 from concurrent.futures import Future, ThreadPoolExecutor
 from uuid import uuid4
 
@@ -142,13 +143,20 @@ if datos:
 
     st.divider()
     texto_exportado = exportar_a_texto(datos, st.session_state.checks)
-    st.download_button(
-        "⬇️ Descargar lista (.txt)",
-        data=texto_exportado,
-        file_name="lista_de_la_compra.txt",
-        mime="text/plain",
-        on_click="ignore",
-        use_container_width=True,
+    texto_codificado = base64.b64encode(texto_exportado.encode("utf-8")).decode("ascii")
+    st.markdown(
+        f"""
+        <a href="data:text/plain;charset=utf-8;base64,{texto_codificado}"
+           download="lista_de_la_compra.txt"
+           target="_blank"
+           rel="noopener noreferrer"
+           style="display:block;width:100%;box-sizing:border-box;padding:0.6rem 1rem;
+                  text-align:center;border:1px solid #ff4b4b;border-radius:0.5rem;
+                  background:#ff4b4b;color:white;text-decoration:none;font-weight:600;">
+            ⬇️ Descargar lista (.txt)
+        </a>
+        """,
+        unsafe_allow_html=True,
     )
 else:
     st.info("Sube un PDF y pulsa **Generar lista de la compra** en el panel lateral para empezar.")
