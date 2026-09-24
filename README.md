@@ -32,7 +32,7 @@ Dieta/
 
    ```
    GEMINI_API_KEY=tu_clave_aqui
-   GEMINI_MODEL=gemini-3.6-flash
+   GEMINI_MODEL=gemini-2.5-flash
    ```
 
    Este archivo se lee en el servidor y **no se muestra ni es editable desde

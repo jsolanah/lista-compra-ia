@@ -102,6 +102,7 @@ if datos:
         data=texto_exportado,
         file_name="lista_de_la_compra.txt",
         mime="text/plain",
+        on_click="ignore",
         use_container_width=True,
     )
 else:
