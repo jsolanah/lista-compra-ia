@@ -11,11 +11,16 @@ Dieta/
 ├── app.py                  # Punto de entrada de Streamlit (interfaz)
 ├── src/
 │   ├── config.py           # Carga de .env, API key, modelo y categorías
-│   ├── pdf_utils.py         # Extracción de texto del PDF
-│   ├── gemini_client.py     # Prompt y llamada a la API de Gemini
-│   ├── export_utils.py      # Exportación de la lista a .txt
-│   ├── list_cache.py        # Caché SQLite de listas generadas
-│   └── job_manager.py       # Trabajos de generación en segundo plano
+│   ├── ai/
+│   │   └── gemini_client.py # Prompt y llamada a la API de Gemini
+│   ├── documents/
+│   │   └── pdf_utils.py     # Extracción de texto del PDF
+│   ├── exports/
+│   │   └── export_utils.py  # Exportación de la lista a .txt
+│   ├── jobs/
+│   │   └── job_manager.py   # Trabajos de generación en segundo plano
+│   └── persistence/
+│       └── list_cache.py    # Caché SQLite de listas generadas
 ├── .streamlit/
 │   └── config.toml         # Oculta el menú/toolbar de desarrollador
 ├── requirements.txt
@@ -49,10 +54,36 @@ streamlit run app.py
 
 Se abrirá en `http://localhost:8501`.
 
-Las listas generadas se guardan en `data/listas_compra.db` usando el nombre del
-PDF. Si se despliega en otra ubicación, se puede configurar la ruta con
-`LISTA_DB_PATH`. Un PDF con un nombre ya registrado se recupera sin volver a
-llamar a Gemini.
+## Base de datos y caché
+
+La aplicación usa SQLite para guardar las listas generadas en:
+
+```text
+data/listas_compra.db
+```
+
+Cada registro contiene:
+
+- El nombre normalizado del PDF.
+- La lista de la compra generada en formato JSON.
+- La fecha de generación.
+
+Antes de llamar a Gemini, la aplicación consulta esta base de datos. Si ya
+existe una lista para ese nombre de PDF, la recupera directamente y no vuelve
+a consumir tokens. Los nombres se normalizan para ignorar diferencias de
+mayúsculas, espacios exteriores y Unicode entre dispositivos.
+
+La base de datos se crea automáticamente al guardar la primera lista. Su ruta
+se puede cambiar con la variable de entorno `LISTA_DB_PATH`:
+
+```text
+LISTA_DB_PATH=/ruta/persistente/listas_compra.db
+```
+
+En un despliegue público, la base debe estar en un almacenamiento persistente.
+Si la plataforma reinicia la aplicación y usa un disco efímero, las listas
+guardadas se perderán. La base local está excluida de Git mediante `.gitignore`
+y no contiene la API key.
 
 ## Uso
 

@@ -37,15 +37,7 @@ def obtener_lista(nombre_pdf: str) -> dict | None:
             "SELECT datos_json FROM listas_compra WHERE nombre_pdf = ?",
             (nombre_normalizado,),
         ).fetchone()
-        if fila is None and nombre_normalizado != nombre_pdf:
-            fila = connection.execute(
-                """
-                SELECT datos_json FROM listas_compra
-                WHERE lower(trim(nombre_pdf)) = lower(trim(?))
-                """,
-                (nombre_pdf,),
-            ).fetchone()
-        elif fila is None:
+        if fila is None:
             fila = connection.execute(
                 """
                 SELECT datos_json FROM listas_compra

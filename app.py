@@ -9,9 +9,9 @@ import base64
 import streamlit as st
 
 from src.config import CATEGORIAS, GEMINI_API_KEY, GEMINI_MODEL
-from src.export_utils import exportar_a_texto
-from src.job_manager import iniciar_procesamiento, obtener_trabajo
-from src.list_cache import guardar_lista, normalizar_nombre_pdf, obtener_lista
+from src.exports.export_utils import exportar_a_texto
+from src.jobs.job_manager import iniciar_procesamiento, obtener_trabajo
+from src.persistence.list_cache import guardar_lista, normalizar_nombre_pdf, obtener_lista
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
 

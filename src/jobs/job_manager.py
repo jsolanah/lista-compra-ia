@@ -7,9 +7,9 @@ from uuid import uuid4
 
 import streamlit as st
 
+from src.ai.gemini_client import generar_lista_compra
 from src.config import GEMINI_API_KEY, GEMINI_MODEL
-from src.gemini_client import generar_lista_compra
-from src.pdf_utils import extraer_texto_pdf
+from src.documents.pdf_utils import extraer_texto_pdf
 
 
 @st.cache_resource
