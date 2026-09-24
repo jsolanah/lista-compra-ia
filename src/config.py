@@ -23,10 +23,14 @@ def _obtener_configuracion(nombre: str, valor_por_defecto: str) -> str:
 
 # La API key y el modelo se gestionan en el servidor: nunca se exponen en la
 # interfaz pública.
-OPENROUTER_API_KEY = _obtener_configuracion("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = _obtener_configuracion(
-    "OPENROUTER_MODEL", "qwen/qwen3.8-27b:free"
-)
+GEMINI_API_KEY = _obtener_configuracion("GEMINI_API_KEY", "")
+GEMINI_MODEL = _obtener_configuracion("GEMINI_MODEL", "gemini-3.6-flash")
+if GEMINI_MODEL in {
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-2.5-flash",
+}:
+    GEMINI_MODEL = "gemini-3.6-flash"
 
 CATEGORIAS = [
     "🥩 Carne",

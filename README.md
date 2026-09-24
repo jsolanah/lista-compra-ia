@@ -35,11 +35,11 @@ Dieta/
    pip install -r requirements.txt
    ```
 
-2. La clave de API de OpenRouter se configura en el archivo `.env`:
+2. La clave de API de Gemini se configura en el archivo `.env`:
 
    ```
-   OPENROUTER_API_KEY=tu_clave_aqui
-   OPENROUTER_MODEL=google/gemini-2.5-flash
+   GEMINI_API_KEY=tu_clave_aqui
+   GEMINI_MODEL=gemini-3.6-flash
    ```
 
    Este archivo se lee en el servidor y **no se muestra ni es editable desde
@@ -58,11 +58,11 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-Crea un archivo `.env` en esa misma carpeta con la configuración de OpenRouter:
+Crea un archivo `.env` en esa misma carpeta con la configuración de Gemini:
 
 ```env
-OPENROUTER_API_KEY=tu_clave_de_openrouter
-OPENROUTER_MODEL=google/gemini-2.5-flash
+GEMINI_API_KEY=tu_clave_de_gemini
+GEMINI_MODEL=gemini-3.6-flash
 ```
 
 Inicia la aplicación con Streamlit:

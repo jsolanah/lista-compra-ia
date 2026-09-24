@@ -8,7 +8,7 @@ from uuid import uuid4
 import streamlit as st
 
 from src.ai.gemini_client import generar_lista_compra
-from src.config import OPENROUTER_API_KEY, OPENROUTER_MODEL
+from src.config import GEMINI_API_KEY, GEMINI_MODEL
 from src.documents.pdf_utils import extraer_texto_pdf
 
 
@@ -21,7 +21,7 @@ def _procesar_dieta(pdf_bytes: bytes) -> dict:
     texto_dieta = extraer_texto_pdf(io.BytesIO(pdf_bytes))
     if not texto_dieta.strip():
         raise ValueError("No se ha podido extraer texto del PDF. ¿Es un PDF escaneado como imagen?")
-    return generar_lista_compra(texto_dieta, OPENROUTER_API_KEY, OPENROUTER_MODEL)
+    return generar_lista_compra(texto_dieta, GEMINI_API_KEY, GEMINI_MODEL)
 
 
 def iniciar_procesamiento(pdf_bytes: bytes, nombre_pdf: str) -> str:
