@@ -3,48 +3,17 @@ Generador inteligente de lista de la compra a partir de un PDF de dieta.
 Usa Gemini (google-generativeai) para extraer y consolidar ingredientes.
 """
 
-import io
 import json
-import threading
 import base64
-from concurrent.futures import Future, ThreadPoolExecutor
-from uuid import uuid4
 
 import streamlit as st
 
 from src.config import CATEGORIAS, GEMINI_API_KEY, GEMINI_MODEL
 from src.export_utils import exportar_a_texto
-from src.gemini_client import generar_lista_compra
-from src.pdf_utils import extraer_texto_pdf
+from src.job_manager import iniciar_procesamiento, obtener_trabajo
+from src.list_cache import guardar_lista, obtener_lista
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
-
-
-@st.cache_resource
-def _obtener_almacen_trabajos() -> tuple[ThreadPoolExecutor, dict[str, Future], threading.Lock]:
-    return ThreadPoolExecutor(max_workers=2), {}, threading.Lock()
-
-
-def _procesar_dieta(pdf_bytes: bytes, api_key: str, modelo: str) -> dict:
-    texto_dieta = extraer_texto_pdf(io.BytesIO(pdf_bytes))
-    if not texto_dieta.strip():
-        raise ValueError("No se ha podido extraer texto del PDF. ¿Es un PDF escaneado como imagen?")
-    return generar_lista_compra(texto_dieta, api_key, modelo)
-
-
-def _iniciar_procesamiento(pdf_bytes: bytes) -> str:
-    executor, jobs, jobs_lock = _obtener_almacen_trabajos()
-    job_id = uuid4().hex
-    future = executor.submit(_procesar_dieta, pdf_bytes, GEMINI_API_KEY, GEMINI_MODEL)
-    with jobs_lock:
-        jobs[job_id] = future
-    return job_id
-
-
-def _obtener_trabajo(job_id: str) -> Future | None:
-    _, jobs, jobs_lock = _obtener_almacen_trabajos()
-    with jobs_lock:
-        return jobs.get(job_id)
 
 
 # --------------------------------------------------------------------------
@@ -79,9 +48,17 @@ if procesar and archivo_pdf:
     if not GEMINI_API_KEY:
         st.error("El servicio no está disponible en este momento. Inténtalo más tarde.")
     else:
-        st.session_state.generation_job_id = _iniciar_procesamiento(archivo_pdf.getvalue())
-        st.session_state.lista_compra = None
-        st.session_state.checks = {}
+        nombre_pdf = archivo_pdf.name
+        lista_guardada = obtener_lista(nombre_pdf)
+        if lista_guardada is not None:
+            st.session_state.lista_compra = lista_guardada
+            st.session_state.checks = {}
+            st.session_state.generation_job_id = None
+            st.success("Lista recuperada de la base de datos sin consumir tokens.")
+        else:
+            st.session_state.generation_job_id = iniciar_procesamiento(archivo_pdf.getvalue(), nombre_pdf)
+            st.session_state.lista_compra = None
+            st.session_state.checks = {}
 
 
 if "generation_job_id" not in st.session_state:
@@ -93,16 +70,18 @@ if generation_job_id:
 
     @st.fragment(run_every="2s")
     def mostrar_estado_generacion():
-        future = _obtener_trabajo(generation_job_id)
-        if future is None:
+        trabajo = obtener_trabajo(generation_job_id)
+        if trabajo is None:
             st.error("Se ha perdido el proceso de generación. Vuelve a intentarlo.")
             return
+        future, nombre_pdf = trabajo
         if not future.done():
             st.info("⏳ Generando la lista... Puedes bloquear el teléfono; el proceso continúa en el servidor.")
             return
 
         try:
             st.session_state.lista_compra = future.result()
+            guardar_lista(nombre_pdf, st.session_state.lista_compra)
             st.session_state.checks = {}
             st.session_state.generation_job_id = None
             st.rerun()

@@ -13,7 +13,9 @@ Dieta/
 │   ├── config.py           # Carga de .env, API key, modelo y categorías
 │   ├── pdf_utils.py         # Extracción de texto del PDF
 │   ├── gemini_client.py     # Prompt y llamada a la API de Gemini
-│   └── export_utils.py      # Exportación de la lista a .txt
+│   ├── export_utils.py      # Exportación de la lista a .txt
+│   ├── list_cache.py        # Caché SQLite de listas generadas
+│   └── job_manager.py       # Trabajos de generación en segundo plano
 ├── .streamlit/
 │   └── config.toml         # Oculta el menú/toolbar de desarrollador
 ├── requirements.txt
@@ -46,6 +48,11 @@ streamlit run app.py
 ```
 
 Se abrirá en `http://localhost:8501`.
+
+Las listas generadas se guardan en `data/listas_compra.db` usando el nombre del
+PDF. Si se despliega en otra ubicación, se puede configurar la ruta con
+`LISTA_DB_PATH`. Un PDF con un nombre ya registrado se recupera sin volver a
+llamar a Gemini.
 
 ## Uso
 
