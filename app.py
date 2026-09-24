@@ -11,7 +11,7 @@ import streamlit as st
 from src.config import CATEGORIAS, GEMINI_API_KEY, GEMINI_MODEL
 from src.export_utils import exportar_a_texto
 from src.job_manager import iniciar_procesamiento, obtener_trabajo
-from src.list_cache import guardar_lista, obtener_lista
+from src.list_cache import guardar_lista, normalizar_nombre_pdf, obtener_lista
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
 
@@ -45,20 +45,19 @@ st.title("🛒 Generador de Lista de la Compra")
 st.caption("Sube el PDF de tu dieta y deja que la IA construya tu lista, clasificada y consolidada.")
 
 if procesar and archivo_pdf:
-    if not GEMINI_API_KEY:
+    nombre_pdf = normalizar_nombre_pdf(archivo_pdf.name)
+    lista_guardada = obtener_lista(nombre_pdf)
+    if lista_guardada is not None:
+        st.session_state.lista_compra = lista_guardada
+        st.session_state.checks = {}
+        st.session_state.generation_job_id = None
+        st.info("Dieta encontrada, generando los datos.")
+    elif not GEMINI_API_KEY:
         st.error("El servicio no está disponible en este momento. Inténtalo más tarde.")
     else:
-        nombre_pdf = archivo_pdf.name
-        lista_guardada = obtener_lista(nombre_pdf)
-        if lista_guardada is not None:
-            st.session_state.lista_compra = lista_guardada
-            st.session_state.checks = {}
-            st.session_state.generation_job_id = None
-            st.success("Lista recuperada de la base de datos sin consumir tokens.")
-        else:
-            st.session_state.generation_job_id = iniciar_procesamiento(archivo_pdf.getvalue(), nombre_pdf)
-            st.session_state.lista_compra = None
-            st.session_state.checks = {}
+        st.session_state.generation_job_id = iniciar_procesamiento(archivo_pdf.getvalue(), nombre_pdf)
+        st.session_state.lista_compra = None
+        st.session_state.checks = {}
 
 
 if "generation_job_id" not in st.session_state:
@@ -76,7 +75,7 @@ if generation_job_id:
             return
         future, nombre_pdf = trabajo
         if not future.done():
-            st.info("⏳ Generando la lista... Puedes bloquear el teléfono; el proceso continúa en el servidor.")
+            st.info("Leyendo PDF, generando los datos...")
             return
 
         try:
