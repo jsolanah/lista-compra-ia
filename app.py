@@ -22,6 +22,7 @@ from src.persistence.list_cache import (
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
 cookies = stx.CookieManager(key="auth_cookie_manager")
+cookies_disponibles = cookies.get_all(key="read_auth_cookies") or {}
 
 
 def _guardar_cookie_sesion(usuario: dict):
@@ -40,10 +41,7 @@ def _borrar_cookie_sesion():
 
 
 def _leer_cookie(nombre: str):
-    try:
-        return st.context.cookies.get(nombre)
-    except AttributeError:
-        return cookies.get_all().get(nombre)
+    return cookies_disponibles.get(nombre)
 
 
 # --------------------------------------------------------------------------
