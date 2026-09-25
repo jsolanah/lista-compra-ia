@@ -47,7 +47,6 @@ if "usuario" not in st.session_state:
     st.session_state.usuario = None
 
 if st.session_state.usuario is None:
-    cookies.refresh()
     access_token = cookies.get("supabase_access_token")
     refresh_token = cookies.get("supabase_refresh_token")
     if access_token and refresh_token:
