@@ -143,8 +143,7 @@ st.title("🛒 Lista de la Compra Inteligente")
 
 
 def _mostrar_controles_usuario(en_sidebar: bool = False):
-    contenedor = st.sidebar if en_sidebar else st
-    with contenedor:
+    def renderizar_controles():
         st.caption(f"Sesión: {st.session_state.usuario['email']}")
         if st.button("Cerrar sesión", use_container_width=True, key=f"cerrar_sesion_{en_sidebar}"):
             _limpiar_sesion_usuario()
@@ -160,7 +159,12 @@ def _mostrar_controles_usuario(en_sidebar: bool = False):
                 key=f"generar_lista_{en_sidebar}",
             )
             return archivo, generar
-    return None, False
+        return None, False
+
+    if en_sidebar:
+        with st.sidebar:
+            return renderizar_controles()
+    return renderizar_controles()
 
 
 if es_movil:
