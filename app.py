@@ -7,7 +7,7 @@ import json
 import base64
 
 import streamlit as st
-import extra_streamlit_components as stx
+from streamlit_local_storage import LocalStorage
 
 from src.auth.auth_manager import iniciar_sesion, registrar_usuario, restaurar_sesion
 from src.config import CATEGORIAS, GEMINI_API_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
@@ -21,27 +21,29 @@ from src.persistence.list_cache import (
 )
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
-cookies = stx.CookieManager(key="auth_cookie_manager")
-cookies_disponibles = cookies.get_all(key="read_auth_cookies") or {}
+almacen_local = LocalStorage(key="auth_storage")
 
 
 def _guardar_cookie_sesion(usuario: dict):
-    try:
-        secure = st.context.url.startswith("https://")
-    except AttributeError:
-        secure = True
-    opciones = {"max_age": 60 * 60 * 24 * 30, "secure": secure, "same_site": "lax"}
-    cookies.set("supabase_access_token", usuario["access_token"], key="set_access", **opciones)
-    cookies.set("supabase_refresh_token", usuario["refresh_token"], key="set_refresh", **opciones)
+    almacen_local.setItem(
+        "supabase_access_token",
+        usuario["access_token"],
+        key="set_access_token",
+    )
+    almacen_local.setItem(
+        "supabase_refresh_token",
+        usuario["refresh_token"],
+        key="set_refresh_token",
+    )
 
 
 def _borrar_cookie_sesion():
-    cookies.delete("supabase_access_token", key="delete_access")
-    cookies.delete("supabase_refresh_token", key="delete_refresh")
+    almacen_local.deleteItem("supabase_access_token", key="delete_access_token")
+    almacen_local.deleteItem("supabase_refresh_token", key="delete_refresh_token")
 
 
 def _leer_cookie(nombre: str):
-    return cookies_disponibles.get(nombre)
+    return almacen_local.getItem(nombre)
 
 
 # --------------------------------------------------------------------------
