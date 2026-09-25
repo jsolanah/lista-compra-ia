@@ -415,7 +415,7 @@ if datos:
         unsafe_allow_html=True,
     )
 else:
-    if es_movil:
+    if es_movil and not st.session_state.menu_movil_abierto:
         if st.button(
             "Sube un PDF y pulsa Generar lista de la compra para empezar.",
             key="abrir_menu_desde_aviso",
@@ -423,5 +423,5 @@ else:
         ):
             st.session_state.menu_movil_abierto = True
             st.rerun()
-    else:
+    elif not es_movil:
         st.info("Sube un PDF y pulsa **Generar lista de la compra** para empezar.")
