@@ -67,6 +67,11 @@ def _leer_cookie(nombre: str):
     return almacen_local.getItem(nombre)
 
 
+if "sidebar_inicial_cerrado" not in st.session_state:
+    _controlar_sidebar("cerrar", "cerrar_sidebar_inicio")
+    st.session_state.sidebar_inicial_cerrado = True
+
+
 # --------------------------------------------------------------------------
 # Autenticacion
 # --------------------------------------------------------------------------
