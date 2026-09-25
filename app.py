@@ -5,6 +5,7 @@ Usa Gemini (google-generativeai) para extraer y consolidar ingredientes.
 
 import json
 import base64
+import html
 
 import streamlit as st
 from streamlit_local_storage import LocalStorage
@@ -27,6 +28,27 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 almacen_local = LocalStorage(key="auth_storage")
+st.markdown(
+    """
+    <style>
+        @media (max-width: 640px) {
+            [data-testid="stAppViewContainer"] .main .block-container {
+                padding: 1.25rem 1rem 3rem;
+            }
+            h1 {
+                font-size: 2.15rem !important;
+                line-height: 1.08 !important;
+                margin-bottom: 0.8rem !important;
+            }
+            [data-testid="stExpander"] summary p {
+                font-size: 1rem;
+                font-weight: 600;
+            }
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 def _es_dispositivo_movil() -> bool:
@@ -145,16 +167,19 @@ if "seccion_pendiente" in st.session_state:
     st.session_state.seccion = st.session_state.pop("seccion_pendiente")
 
 es_movil = _es_dispositivo_movil()
-st.title("🛒 Lista de la Compra Inteligente")
+st.title("🛒 Lista de la compra")
 
 
 def _mostrar_controles_usuario(en_sidebar: bool = False):
     def renderizar_controles():
-        st.caption(f"Sesión: {st.session_state.usuario['email']}")
+        st.markdown(
+            f'<p class="session-label">Sesión activa: <strong>{html.escape(st.session_state.usuario["email"])}</strong></p>',
+            unsafe_allow_html=True,
+        )
         if st.button("Cerrar sesión", use_container_width=True, key=f"cerrar_sesion_{en_sidebar}"):
             _limpiar_sesion_usuario()
             st.rerun()
-        st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion", horizontal=not en_sidebar)
+        st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion", horizontal=False)
         if st.session_state.seccion == "Nueva dieta":
             st.caption("Sube el PDF de tu dieta para generar la lista.")
             archivo = st.file_uploader("Sube tu PDF de dieta", type=["pdf"], key=f"archivo_pdf_{en_sidebar}")
@@ -170,7 +195,8 @@ def _mostrar_controles_usuario(en_sidebar: bool = False):
     if en_sidebar:
         with st.sidebar:
             return renderizar_controles()
-    return renderizar_controles()
+    with st.expander("☰ Menú", expanded=False):
+        return renderizar_controles()
 
 
 if es_movil:
