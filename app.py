@@ -21,7 +21,12 @@ from src.persistence.list_cache import (
     obtener_lista,
 )
 
-st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
+st.set_page_config(
+    page_title="Lista de la Compra Inteligente",
+    page_icon="🛒",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
 almacen_local = LocalStorage(key="auth_storage")
 
 
