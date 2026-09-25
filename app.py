@@ -165,6 +165,8 @@ if "seccion" not in st.session_state:
     st.session_state.seccion = "Nueva dieta"
 if "seccion_pendiente" in st.session_state:
     st.session_state.seccion = st.session_state.pop("seccion_pendiente")
+if "menu_movil_abierto" not in st.session_state:
+    st.session_state.menu_movil_abierto = False
 
 es_movil = _es_dispositivo_movil()
 st.title("🛒 Lista de la compra")
@@ -197,7 +199,7 @@ def _mostrar_controles_usuario(en_sidebar: bool = False):
     if en_sidebar:
         with st.sidebar:
             return renderizar_controles()
-    with st.expander("☰ Menú", expanded=False):
+    with st.expander("☰ Menú", expanded=st.session_state.menu_movil_abierto):
         return renderizar_controles()
 
 
@@ -407,4 +409,13 @@ if datos:
         unsafe_allow_html=True,
     )
 else:
-    st.info("Sube un PDF y pulsa **Generar lista de la compra** para empezar.")
+    if es_movil:
+        if st.button(
+            "Sube un PDF y pulsa Generar lista de la compra para empezar.",
+            key="abrir_menu_desde_aviso",
+            use_container_width=True,
+        ):
+            st.session_state.menu_movil_abierto = True
+            st.rerun()
+    else:
+        st.info("Sube un PDF y pulsa **Generar lista de la compra** para empezar.")
