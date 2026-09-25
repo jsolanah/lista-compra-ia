@@ -48,8 +48,12 @@ def _guardar_cookie_sesion(usuario: dict):
 
 
 def _borrar_cookie_sesion():
-    almacen_local.eraseItem("supabase_access_token", key="erase_access_token")
-    almacen_local.eraseItem("supabase_refresh_token", key="erase_refresh_token")
+    for nombre, key in (
+        ("supabase_access_token", "erase_access_token"),
+        ("supabase_refresh_token", "erase_refresh_token"),
+    ):
+        almacen_local.eraseItem(nombre, key=key)
+        almacen_local.storedItems.pop(nombre, None)
 
 
 def _leer_cookie(nombre: str):
@@ -62,6 +66,8 @@ def _leer_cookie(nombre: str):
 
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
+if st.session_state.pop("borrado_sesion_pendiente", False):
+    _borrar_cookie_sesion()
 if "cookie_pendiente" in st.session_state:
     _guardar_cookie_sesion(st.session_state.pop("cookie_pendiente"))
 if st.session_state.usuario is None:
@@ -76,7 +82,7 @@ if st.session_state.usuario is None:
 
 
 def _limpiar_sesion_usuario():
-    _borrar_cookie_sesion()
+    st.session_state.borrado_sesion_pendiente = True
     st.session_state.usuario = None
     st.session_state.lista_compra = None
     st.session_state.checks = {}
