@@ -199,12 +199,18 @@ def _mostrar_controles_usuario(en_sidebar: bool = False):
     if en_sidebar:
         with st.sidebar:
             return renderizar_controles()
-    with st.expander("☰ Menú", expanded=st.session_state.menu_movil_abierto):
-        return renderizar_controles()
+    return renderizar_controles()
 
 
 if es_movil:
-    archivo_pdf, procesar = _mostrar_controles_usuario()
+    etiqueta_menu = "✕ Cerrar menú" if st.session_state.menu_movil_abierto else "☰ Menú"
+    if st.button(etiqueta_menu, key="alternar_menu_movil", use_container_width=True):
+        st.session_state.menu_movil_abierto = not st.session_state.menu_movil_abierto
+        st.rerun()
+    if st.session_state.menu_movil_abierto:
+        archivo_pdf, procesar = _mostrar_controles_usuario()
+    else:
+        archivo_pdf, procesar = None, False
 else:
     with st.sidebar:
         st.header("🛒 Lista de la Compra")
