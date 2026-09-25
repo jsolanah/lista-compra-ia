@@ -165,6 +165,7 @@ if "seccion" not in st.session_state:
     st.session_state.seccion = "Nueva dieta"
 if "seccion_pendiente" in st.session_state:
     st.session_state.seccion = st.session_state.pop("seccion_pendiente")
+    st.session_state.seccion_radio = st.session_state.seccion
 seccion_mostrada = st.session_state.get("seccion_mostrada", st.session_state.seccion)
 if "menu_movil_abierto" not in st.session_state:
     st.session_state.menu_movil_abierto = False
@@ -175,7 +176,16 @@ st.title("🛒 Lista de la compra")
 
 def _mostrar_controles_usuario(en_sidebar: bool = False):
     def renderizar_controles():
-        st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion", horizontal=False)
+        secciones = ["Nueva dieta", "Mis dietas"]
+        indice_seccion = secciones.index(st.session_state.seccion)
+        seleccion = st.radio(
+            "Sección",
+            secciones,
+            index=indice_seccion,
+            key="seccion_radio",
+            horizontal=False,
+        )
+        st.session_state.seccion = seleccion
         archivo = None
         generar = False
         if st.session_state.seccion == "Nueva dieta":
