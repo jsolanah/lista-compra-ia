@@ -165,7 +165,7 @@ if "seccion" not in st.session_state:
     st.session_state.seccion = "Nueva dieta"
 if "seccion_pendiente" in st.session_state:
     st.session_state.seccion = st.session_state.pop("seccion_pendiente")
-seccion_antes = st.session_state.seccion
+seccion_mostrada = st.session_state.get("seccion_mostrada", st.session_state.seccion)
 if "menu_movil_abierto" not in st.session_state:
     st.session_state.menu_movil_abierto = False
 
@@ -217,9 +217,11 @@ else:
         st.header("🛒 Lista de la Compra")
     archivo_pdf, procesar = _mostrar_controles_usuario(en_sidebar=True)
 
-if es_movil and st.session_state.seccion != seccion_antes:
+if es_movil and st.session_state.seccion != seccion_mostrada:
+    st.session_state.seccion_mostrada = st.session_state.seccion
     st.session_state.menu_movil_abierto = False
     st.rerun()
+st.session_state.seccion_mostrada = st.session_state.seccion
 
 
 # --------------------------------------------------------------------------
