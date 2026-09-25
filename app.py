@@ -24,9 +24,14 @@ st.set_page_config(
     page_title="Lista de la Compra Inteligente",
     page_icon="🛒",
     layout="centered",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="auto",
 )
 almacen_local = LocalStorage(key="auth_storage")
+
+
+def _es_dispositivo_movil() -> bool:
+    user_agent = st.context.headers.get("user-agent", "").lower()
+    return any(dispositivo in user_agent for dispositivo in ("iphone", "ipad", "android"))
 
 
 def _guardar_cookie_sesion(usuario: dict):
@@ -133,24 +138,37 @@ if "seccion" not in st.session_state:
 if "seccion_pendiente" in st.session_state:
     st.session_state.seccion = st.session_state.pop("seccion_pendiente")
 
+es_movil = _es_dispositivo_movil()
 st.title("🛒 Lista de la Compra Inteligente")
-st.caption(f"Sesión: {st.session_state.usuario['email']}")
-if st.button("Cerrar sesión", use_container_width=True):
-    _limpiar_sesion_usuario()
-    st.rerun()
 
-st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion", horizontal=True)
-if st.session_state.seccion == "Nueva dieta":
-    st.caption("Sube el PDF de tu dieta para generar la lista.")
-    archivo_pdf = st.file_uploader("Sube tu PDF de dieta", type=["pdf"])
-    procesar = st.button(
-        "🚀 Generar lista de la compra",
-        use_container_width=True,
-        disabled=not archivo_pdf,
-    )
+
+def _mostrar_controles_usuario(en_sidebar: bool = False):
+    contenedor = st.sidebar if en_sidebar else st
+    with contenedor:
+        st.caption(f"Sesión: {st.session_state.usuario['email']}")
+        if st.button("Cerrar sesión", use_container_width=True, key=f"cerrar_sesion_{en_sidebar}"):
+            _limpiar_sesion_usuario()
+            st.rerun()
+        st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion", horizontal=not en_sidebar)
+        if st.session_state.seccion == "Nueva dieta":
+            st.caption("Sube el PDF de tu dieta para generar la lista.")
+            archivo = st.file_uploader("Sube tu PDF de dieta", type=["pdf"], key=f"archivo_pdf_{en_sidebar}")
+            generar = st.button(
+                "🚀 Generar lista de la compra",
+                use_container_width=True,
+                disabled=not archivo,
+                key=f"generar_lista_{en_sidebar}",
+            )
+            return archivo, generar
+    return None, False
+
+
+if es_movil:
+    archivo_pdf, procesar = _mostrar_controles_usuario()
 else:
-    archivo_pdf = None
-    procesar = False
+    with st.sidebar:
+        st.header("🛒 Lista de la Compra")
+    archivo_pdf, procesar = _mostrar_controles_usuario(en_sidebar=True)
 
 
 # --------------------------------------------------------------------------
