@@ -165,6 +165,7 @@ if "seccion" not in st.session_state:
     st.session_state.seccion = "Nueva dieta"
 if "seccion_pendiente" in st.session_state:
     st.session_state.seccion = st.session_state.pop("seccion_pendiente")
+seccion_antes = st.session_state.seccion
 if "menu_movil_abierto" not in st.session_state:
     st.session_state.menu_movil_abierto = False
 
@@ -215,6 +216,10 @@ else:
     with st.sidebar:
         st.header("🛒 Lista de la Compra")
     archivo_pdf, procesar = _mostrar_controles_usuario(en_sidebar=True)
+
+if es_movil and st.session_state.seccion != seccion_antes:
+    st.session_state.menu_movil_abierto = False
+    st.rerun()
 
 
 # --------------------------------------------------------------------------
@@ -269,6 +274,9 @@ if procesar and archivo_pdf:
         st.session_state.checks = {}
         st.session_state.generation_job_id = None
         st.info("Dieta encontrada. Se han recuperado el plan y la lista guardados.")
+        if es_movil:
+            st.session_state.menu_movil_abierto = False
+            st.rerun()
     elif not GEMINI_API_KEY:
         st.error(
             "Falta configurar GEMINI_API_KEY en los Secrets de Streamlit Cloud."
@@ -277,6 +285,9 @@ if procesar and archivo_pdf:
         st.session_state.generation_job_id = iniciar_procesamiento(pdf_bytes, clave_dieta)
         st.session_state.lista_compra = None
         st.session_state.checks = {}
+        if es_movil:
+            st.session_state.menu_movil_abierto = False
+            st.rerun()
 
 
 if "generation_job_id" not in st.session_state:
