@@ -17,11 +17,15 @@ def _obtener_cliente_auth():
     return create_client(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
 
 
-def _datos_usuario(usuario) -> dict:
-    return {
+def _datos_usuario(usuario, sesion=None) -> dict:
+    datos = {
         "user_id": usuario.id,
         "email": usuario.email or "",
     }
+    if sesion is not None:
+        datos["access_token"] = sesion.access_token
+        datos["refresh_token"] = sesion.refresh_token
+    return datos
 
 
 def iniciar_sesion(email: str, password: str) -> dict:
@@ -30,7 +34,7 @@ def iniciar_sesion(email: str, password: str) -> dict:
     )
     if respuesta.user is None:
         raise RuntimeError("No se ha podido iniciar la sesion.")
-    return _datos_usuario(respuesta.user)
+    return _datos_usuario(respuesta.user, respuesta.session)
 
 
 def registrar_usuario(email: str, password: str) -> dict | None:
@@ -41,4 +45,11 @@ def registrar_usuario(email: str, password: str) -> dict | None:
         raise RuntimeError("No se ha podido crear el usuario.")
     if respuesta.session is None:
         return None
-    return _datos_usuario(respuesta.user)
+    return _datos_usuario(respuesta.user, respuesta.session)
+
+
+def restaurar_sesion(access_token: str, refresh_token: str) -> dict:
+    respuesta = _obtener_cliente_auth().auth.set_session(access_token, refresh_token)
+    if respuesta.user is None or respuesta.session is None:
+        raise RuntimeError("La sesion ha caducado.")
+    return _datos_usuario(respuesta.user, respuesta.session)

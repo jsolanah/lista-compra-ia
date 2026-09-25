@@ -7,8 +7,9 @@ import json
 import base64
 
 import streamlit as st
+from streamlit_cookies_controller import CookieController
 
-from src.auth.auth_manager import iniciar_sesion, registrar_usuario
+from src.auth.auth_manager import iniciar_sesion, registrar_usuario, restaurar_sesion
 from src.config import CATEGORIAS, GEMINI_API_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
 from src.exports.export_utils import exportar_a_texto
 from src.jobs.job_manager import iniciar_procesamiento, obtener_trabajo
@@ -20,6 +21,22 @@ from src.persistence.list_cache import (
 )
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
+cookies = CookieController(key="auth_cookies")
+
+
+def _guardar_cookie_sesion(usuario: dict):
+    try:
+        secure = st.context.url.startswith("https://")
+    except AttributeError:
+        secure = True
+    opciones = {"max_age": 60 * 60 * 24 * 30, "secure": secure, "same_site": "lax"}
+    cookies.set("supabase_access_token", usuario["access_token"], **opciones)
+    cookies.set("supabase_refresh_token", usuario["refresh_token"], **opciones)
+
+
+def _borrar_cookie_sesion():
+    cookies.remove("supabase_access_token")
+    cookies.remove("supabase_refresh_token")
 
 
 # --------------------------------------------------------------------------
@@ -29,8 +46,19 @@ st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒"
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
 
+if st.session_state.usuario is None:
+    access_token = cookies.get("supabase_access_token")
+    refresh_token = cookies.get("supabase_refresh_token")
+    if access_token and refresh_token:
+        try:
+            st.session_state.usuario = restaurar_sesion(access_token, refresh_token)
+            _guardar_cookie_sesion(st.session_state.usuario)
+        except Exception:
+            _borrar_cookie_sesion()
+
 
 def _limpiar_sesion_usuario():
+    _borrar_cookie_sesion()
     st.session_state.usuario = None
     st.session_state.lista_compra = None
     st.session_state.checks = {}
@@ -55,6 +83,7 @@ if st.session_state.usuario is None:
         if enviar_login:
             try:
                 st.session_state.usuario = iniciar_sesion(email_login, password_login)
+                _guardar_cookie_sesion(st.session_state.usuario)
                 st.session_state.lista_compra = None
                 st.session_state.checks = {}
                 st.rerun()
@@ -73,6 +102,7 @@ if st.session_state.usuario is None:
                     st.success("Cuenta creada. Revisa tu correo para confirmar la cuenta.")
                 else:
                     st.session_state.usuario = usuario_nuevo
+                    _guardar_cookie_sesion(st.session_state.usuario)
                     st.session_state.lista_compra = None
                     st.session_state.checks = {}
                     st.rerun()
