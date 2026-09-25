@@ -26,13 +26,13 @@ almacen_local = LocalStorage(key="auth_storage")
 
 
 def _controlar_sidebar(accion: str, key: str):
-    selector = "Close sidebar" if accion == "cerrar" else "Open sidebar"
+    testid = "stSidebarCollapseButton" if accion == "cerrar" else "stExpandSidebarButton"
     expression = f"""
         (() => {{
-            const botones = Array.from(window.parent.document.querySelectorAll('button'));
-            const boton = botones.find((elemento) =>
-                (elemento.getAttribute('aria-label') || '').toLowerCase().includes('{selector.lower()}')
-            );
+            const contenedor = window.parent.document.querySelector('[data-testid="{testid}"]');
+            const boton = contenedor?.matches('button')
+                ? contenedor
+                : contenedor?.querySelector('button');
             if (boton) {{ boton.click(); return true; }}
             return false;
         }})()
