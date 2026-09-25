@@ -39,22 +39,22 @@ def _borrar_cookie_sesion():
     cookies.remove("supabase_refresh_token")
 
 
-    def _leer_cookie(nombre: str):
-        try:
-            return st.context.cookies.get(nombre)
-        except AttributeError:
-            return cookies.get(nombre)
+def _leer_cookie(nombre: str):
+    try:
+        return st.context.cookies.get(nombre)
+    except AttributeError:
+        return cookies.get(nombre)
+
 
 # --------------------------------------------------------------------------
 # Autenticacion
 # --------------------------------------------------------------------------
 
 if "usuario" not in st.session_state:
-        access_token = _leer_cookie("supabase_access_token")
-        refresh_token = _leer_cookie("supabase_refresh_token")
+    st.session_state.usuario = None
 if st.session_state.usuario is None:
-    access_token = cookies.get("supabase_access_token")
-    refresh_token = cookies.get("supabase_refresh_token")
+    access_token = _leer_cookie("supabase_access_token")
+    refresh_token = _leer_cookie("supabase_refresh_token")
     if access_token and refresh_token:
         try:
             st.session_state.usuario = restaurar_sesion(access_token, refresh_token)
