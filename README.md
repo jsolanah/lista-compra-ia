@@ -173,8 +173,8 @@ contiene la API key.
 
 ## Uso
 
-1. Sube tu PDF de dieta desde la barra lateral.
-2. Pulsa **Generar lista de la compra**.
+1. Selecciona **Nueva dieta** en la pantalla principal.
+2. Sube tu PDF y pulsa **Generar lista de la compra**.
 3. Revisa las tablas del plan de comidas de cada semana.
 4. Revisa la lista clasificada por categorías (🥩 Carne, 🐟 Pescado, 🥦 Verduras...).
 5. Marca los checkboxes de lo que ya tengas o vayas comprando.

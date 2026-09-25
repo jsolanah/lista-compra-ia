@@ -7,7 +7,6 @@ import json
 import base64
 
 import streamlit as st
-from streamlit_js_eval import streamlit_js_eval
 from streamlit_local_storage import LocalStorage
 
 from src.auth.auth_manager import iniciar_sesion, registrar_usuario, restaurar_sesion
@@ -28,21 +27,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 almacen_local = LocalStorage(key="auth_storage")
-
-
-def _controlar_sidebar(accion: str, key: str):
-    testid = "stSidebarCollapseButton" if accion == "cerrar" else "stExpandSidebarButton"
-    expression = f"""
-        (() => {{
-            const contenedor = window.parent.document.querySelector('[data-testid="{testid}"]');
-            const boton = contenedor?.matches('button')
-                ? contenedor
-                : contenedor?.querySelector('button');
-            if (boton) {{ boton.click(); return true; }}
-            return false;
-        }})()
-    """
-    streamlit_js_eval(js_expressions=expression, key=key, default=False)
 
 
 def _guardar_cookie_sesion(usuario: dict):
@@ -93,7 +77,6 @@ def _limpiar_sesion_usuario():
     st.session_state.checks = {}
     st.session_state.generation_job_id = None
     st.session_state.nombre_archivo_actual = ""
-    st.session_state.sidebar_necesita_cierre = True
 
 
 if st.session_state.usuario is None:
@@ -138,12 +121,11 @@ if st.session_state.usuario is None:
                     st.rerun()
             except Exception:
                 st.error("No se ha podido crear la cuenta. Comprueba el correo y la contraseña.")
-    _controlar_sidebar("cerrar", "cerrar_sidebar_auth")
     st.stop()
 
 
 # --------------------------------------------------------------------------
-# Barra lateral (sin datos sensibles: solo carga de archivo)
+# Navegacion y controles principales
 # --------------------------------------------------------------------------
 
 if "seccion" not in st.session_state:
@@ -151,29 +133,24 @@ if "seccion" not in st.session_state:
 if "seccion_pendiente" in st.session_state:
     st.session_state.seccion = st.session_state.pop("seccion_pendiente")
 
-with st.sidebar:
-    st.header("🛒 Lista de la Compra")
-    st.caption(f"Sesión: {st.session_state.usuario['email']}")
-    if st.button("Cerrar sesión", use_container_width=True):
-        _limpiar_sesion_usuario()
-        st.rerun()
-    st.divider()
-    st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion")
-    if st.session_state.seccion == "Nueva dieta":
-        st.caption("Sube el PDF de tu dieta para generar la lista.")
-        archivo_pdf = st.file_uploader("Sube tu PDF de dieta", type=["pdf"])
-        procesar = st.button(
-            "🚀 Generar lista de la compra",
-            use_container_width=True,
-            disabled=not archivo_pdf,
-        )
-    else:
-        archivo_pdf = None
-        procesar = False
+st.title("🛒 Lista de la Compra Inteligente")
+st.caption(f"Sesión: {st.session_state.usuario['email']}")
+if st.button("Cerrar sesión", use_container_width=True):
+    _limpiar_sesion_usuario()
+    st.rerun()
 
-if st.session_state.get("sidebar_necesita_cierre", True):
-    _controlar_sidebar("cerrar", "cerrar_sidebar_sesion")
-    st.session_state.sidebar_necesita_cierre = False
+st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion", horizontal=True)
+if st.session_state.seccion == "Nueva dieta":
+    st.caption("Sube el PDF de tu dieta para generar la lista.")
+    archivo_pdf = st.file_uploader("Sube tu PDF de dieta", type=["pdf"])
+    procesar = st.button(
+        "🚀 Generar lista de la compra",
+        use_container_width=True,
+        disabled=not archivo_pdf,
+    )
+else:
+    archivo_pdf = None
+    procesar = False
 
 
 # --------------------------------------------------------------------------
@@ -189,7 +166,6 @@ if "nombre_archivo_actual" not in st.session_state:
 
 
 if st.session_state.seccion == "Mis dietas":
-    _controlar_sidebar("cerrar", "cerrar_sidebar_historial")
     st.title("📚 Mis dietas")
     st.caption("Abre una dieta guardada sin volver a subir el PDF.")
     dietas_guardadas = obtener_dietas_usuario(st.session_state.usuario["user_id"])
@@ -227,7 +203,6 @@ if procesar and archivo_pdf:
     st.session_state.nombre_archivo_actual = archivo_pdf.name
     lista_guardada = obtener_lista(usuario_id, clave_dieta)
     if lista_guardada is not None and "plan_semanal" in lista_guardada:
-        _controlar_sidebar("cerrar", "cerrar_sidebar_generar")
         guardar_lista(usuario_id, clave_dieta, lista_guardada, archivo_pdf.name)
         st.session_state.lista_compra = lista_guardada
         st.session_state.checks = {}
@@ -238,7 +213,6 @@ if procesar and archivo_pdf:
             "Falta configurar GEMINI_API_KEY en los Secrets de Streamlit Cloud."
         )
     else:
-        _controlar_sidebar("cerrar", "cerrar_sidebar_generar")
         st.session_state.generation_job_id = iniciar_procesamiento(pdf_bytes, clave_dieta)
         st.session_state.lista_compra = None
         st.session_state.checks = {}
@@ -380,9 +354,4 @@ if datos:
         unsafe_allow_html=True,
     )
 else:
-    if st.button(
-        "Sube un PDF y pulsa Generar lista de la compra en el panel lateral para empezar.",
-        key="abrir_sidebar_principal",
-        use_container_width=True,
-    ):
-        _controlar_sidebar("abrir", "abrir_sidebar_principal_js")
+    st.info("Sube un PDF y pulsa **Generar lista de la compra** para empezar.")
