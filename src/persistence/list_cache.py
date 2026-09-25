@@ -1,6 +1,7 @@
-"""Persistencia local de listas generadas, indexadas por nombre de PDF."""
+"""Persistencia de listas aislada por usuario y hash del PDF."""
 
 import json
+import hashlib
 import os
 import sqlite3
 import unicodedata
@@ -19,18 +20,40 @@ def normalizar_nombre_pdf(nombre_pdf: str) -> str:
     return unicodedata.normalize("NFC", nombre).casefold()
 
 
+def construir_clave_dieta(pdf_bytes: bytes) -> str:
+    return hashlib.sha256(pdf_bytes).hexdigest()
+
+
 def _connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_PATH)
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS listas_compra (
-            nombre_pdf TEXT PRIMARY KEY,
+            usuario_id TEXT NOT NULL,
+            nombre_pdf TEXT NOT NULL,
             datos_json TEXT NOT NULL,
-            creada_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            creada_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (usuario_id, nombre_pdf)
         )
         """
     )
+    columnas = {
+        fila[1] for fila in connection.execute("PRAGMA table_info(listas_compra)")
+    }
+    if "usuario_id" not in columnas:
+        connection.execute("ALTER TABLE listas_compra RENAME TO listas_compra_legacy")
+        connection.execute(
+            """
+            CREATE TABLE listas_compra (
+                usuario_id TEXT NOT NULL,
+                nombre_pdf TEXT NOT NULL,
+                datos_json TEXT NOT NULL,
+                creada_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (usuario_id, nombre_pdf)
+            )
+            """
+        )
     return connection
 
 
@@ -64,7 +87,7 @@ def _extraer_filas(respuesta) -> list:
         return []
 
 
-def obtener_lista(nombre_pdf: str) -> dict | None:
+def obtener_lista(usuario_id: str, nombre_pdf: str) -> dict | None:
     nombre_normalizado = normalizar_nombre_pdf(nombre_pdf)
     if _usar_supabase():
         respuesta = (
@@ -80,26 +103,25 @@ def obtener_lista(nombre_pdf: str) -> dict | None:
 
     with closing(_connect()) as connection:
         fila = connection.execute(
-            "SELECT datos_json FROM listas_compra WHERE nombre_pdf = ?",
+            """
+            SELECT datos_json FROM listas_compra
+            WHERE nombre_pdf = ?
+            """,
             (nombre_normalizado,),
         ).fetchone()
-        if fila is None:
-            fila = connection.execute(
-                """
-                SELECT datos_json FROM listas_compra
-                WHERE lower(trim(nombre_pdf)) = lower(trim(?))
-                """,
-                (nombre_pdf,),
-            ).fetchone()
     return _decodificar_datos(fila[0]) if fila else None
 
 
-def guardar_lista(nombre_pdf: str, datos: dict) -> None:
+def guardar_lista(usuario_id: str, nombre_pdf: str, datos: dict) -> None:
     nombre_normalizado = normalizar_nombre_pdf(nombre_pdf)
     if _usar_supabase():
         _obtener_cliente_supabase().table("listas_compra").upsert(
-            {"nombre_pdf": nombre_normalizado, "datos_json": datos},
-            on_conflict="nombre_pdf",
+            {
+                "usuario_id": usuario_id,
+                "nombre_pdf": nombre_normalizado,
+                "datos_json": datos,
+            },
+            on_conflict="usuario_id,nombre_pdf",
         ).execute()
         return
 
@@ -107,12 +129,12 @@ def guardar_lista(nombre_pdf: str, datos: dict) -> None:
     with closing(_connect()) as connection:
         connection.execute(
             """
-            INSERT INTO listas_compra (nombre_pdf, datos_json)
-            VALUES (?, ?)
-            ON CONFLICT(nombre_pdf) DO UPDATE SET
+            INSERT INTO listas_compra (usuario_id, nombre_pdf, datos_json)
+            VALUES (?, ?, ?)
+            ON CONFLICT(usuario_id, nombre_pdf) DO UPDATE SET
                 datos_json = excluded.datos_json,
                 creada_en = CURRENT_TIMESTAMP
             """,
-            (nombre_normalizado, datos_json),
+            (usuario_id, nombre_normalizado, datos_json),
         )
         connection.commit()

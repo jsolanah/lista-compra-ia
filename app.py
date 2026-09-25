@@ -8,12 +8,71 @@ import base64
 
 import streamlit as st
 
-from src.config import CATEGORIAS, GEMINI_API_KEY
+from src.auth.auth_manager import iniciar_sesion, registrar_usuario
+from src.config import CATEGORIAS, GEMINI_API_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
 from src.exports.export_utils import exportar_a_texto
 from src.jobs.job_manager import iniciar_procesamiento, obtener_trabajo
-from src.persistence.list_cache import guardar_lista, normalizar_nombre_pdf, obtener_lista
+from src.persistence.list_cache import construir_clave_dieta, guardar_lista, obtener_lista
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
+
+
+# --------------------------------------------------------------------------
+# Autenticacion
+# --------------------------------------------------------------------------
+
+if "usuario" not in st.session_state:
+    st.session_state.usuario = None
+
+
+def _limpiar_sesion_usuario():
+    st.session_state.usuario = None
+    st.session_state.lista_compra = None
+    st.session_state.checks = {}
+    st.session_state.generation_job_id = None
+
+
+if st.session_state.usuario is None:
+    st.title("🛒 Lista de la Compra Inteligente")
+    st.caption("Inicia sesión para mantener tus dietas privadas.")
+
+    if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
+        st.error("Falta configurar la autenticación de Supabase.")
+        st.stop()
+
+    pestaña_login, pestaña_registro = st.tabs(["Iniciar sesión", "Crear cuenta"])
+    with pestaña_login:
+        with st.form("formulario_login"):
+            email_login = st.text_input("Correo electrónico")
+            password_login = st.text_input("Contraseña", type="password")
+            enviar_login = st.form_submit_button("Iniciar sesión", use_container_width=True)
+        if enviar_login:
+            try:
+                st.session_state.usuario = iniciar_sesion(email_login, password_login)
+                st.session_state.lista_compra = None
+                st.session_state.checks = {}
+                st.rerun()
+            except Exception:
+                st.error("No se ha podido iniciar sesión. Comprueba tus datos.")
+
+    with pestaña_registro:
+        with st.form("formulario_registro"):
+            email_registro = st.text_input("Correo electrónico", key="registro_email")
+            password_registro = st.text_input("Contraseña", type="password", key="registro_password")
+            enviar_registro = st.form_submit_button("Crear cuenta", use_container_width=True)
+        if enviar_registro:
+            try:
+                usuario_nuevo = registrar_usuario(email_registro, password_registro)
+                if usuario_nuevo is None:
+                    st.success("Cuenta creada. Revisa tu correo para confirmar la cuenta.")
+                else:
+                    st.session_state.usuario = usuario_nuevo
+                    st.session_state.lista_compra = None
+                    st.session_state.checks = {}
+                    st.rerun()
+            except Exception:
+                st.error("No se ha podido crear la cuenta. Comprueba el correo y la contraseña.")
+    st.stop()
 
 
 # --------------------------------------------------------------------------
@@ -22,6 +81,11 @@ st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒"
 
 with st.sidebar:
     st.header("🛒 Lista de la Compra")
+    st.caption(f"Sesión: {st.session_state.usuario['email']}")
+    if st.button("Cerrar sesión", use_container_width=True):
+        _limpiar_sesion_usuario()
+        st.rerun()
+    st.divider()
     st.caption("Sube el PDF de tu dieta para generar la lista.")
     archivo_pdf = st.file_uploader("Sube tu PDF de dieta", type=["pdf"])
     procesar = st.button("🚀 Generar lista de la compra", use_container_width=True, disabled=not archivo_pdf)
@@ -45,8 +109,10 @@ st.title("🛒 Generador de Lista de la Compra")
 st.caption("Sube el PDF de tu dieta y deja que la IA construya tu lista, clasificada y consolidada.")
 
 if procesar and archivo_pdf:
-    nombre_pdf = normalizar_nombre_pdf(archivo_pdf.name)
-    lista_guardada = obtener_lista(nombre_pdf)
+    pdf_bytes = archivo_pdf.getvalue()
+    clave_dieta = construir_clave_dieta(pdf_bytes)
+    usuario_id = st.session_state.usuario["user_id"]
+    lista_guardada = obtener_lista(usuario_id, clave_dieta)
     if lista_guardada is not None and "plan_semanal" in lista_guardada:
         st.session_state.lista_compra = lista_guardada
         st.session_state.checks = {}
@@ -57,7 +123,7 @@ if procesar and archivo_pdf:
             "Falta configurar GEMINI_API_KEY en los Secrets de Streamlit Cloud."
         )
     else:
-        st.session_state.generation_job_id = iniciar_procesamiento(archivo_pdf.getvalue(), nombre_pdf)
+        st.session_state.generation_job_id = iniciar_procesamiento(pdf_bytes, clave_dieta)
         st.session_state.lista_compra = None
         st.session_state.checks = {}
 
@@ -75,7 +141,7 @@ if generation_job_id:
         if trabajo is None:
             st.error("Se ha perdido el proceso de generación. Vuelve a intentarlo.")
             return
-        future, nombre_pdf = trabajo
+        future, clave_dieta = trabajo
         if not future.done():
             st.markdown(
                 """
@@ -111,7 +177,7 @@ if generation_job_id:
 
         try:
             st.session_state.lista_compra = future.result()
-            guardar_lista(nombre_pdf, st.session_state.lista_compra)
+            guardar_lista(st.session_state.usuario["user_id"], clave_dieta, st.session_state.lista_compra)
             st.session_state.checks = {}
             st.session_state.generation_job_id = None
             st.rerun()

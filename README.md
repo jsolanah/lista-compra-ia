@@ -41,6 +41,7 @@ Dieta/
    GEMINI_API_KEY=tu_clave_aqui
    GEMINI_MODEL=gemini-3.6-flash
    SUPABASE_URL=https://tu-proyecto.supabase.co
+   SUPABASE_PUBLISHABLE_KEY=tu-clave-publicable
    SUPABASE_SECRET_KEY=tu-clave-secreta
    ```
 
@@ -102,32 +103,48 @@ Cada registro contiene:
 - La lista de la compra y el plan de comidas semanal generados en formato JSON.
 - La fecha de generación.
 
-En el editor SQL de Supabase, crea la tabla una vez:
+En el editor SQL de Supabase, si todavía no tienes la tabla, crea el esquema
+de usuarios y dietas:
 
 ```sql
 create table public.listas_compra (
-   nombre_pdf text primary key,
+   usuario_id uuid not null references auth.users(id) on delete cascade,
+   nombre_pdf text not null,
    datos_json jsonb not null,
-   creada_en timestamptz not null default now()
+   creada_en timestamptz not null default now(),
+   primary key (usuario_id, nombre_pdf)
 );
+
+alter table public.listas_compra enable row level security;
+```
+
+Si ya habías creado la tabla anterior sin `usuario_id`, renómbrala antes de
+ejecutar el bloque anterior para conservarla como respaldo:
+
+```sql
+alter table public.listas_compra rename to listas_compra_legacy;
 ```
 
 Antes de llamar a Gemini, la aplicación consulta esta base de datos. Si ya
-existe una lista para ese nombre de PDF, la recupera directamente y no vuelve
-a consumir tokens. Los nombres se normalizan para ignorar diferencias de
-mayúsculas, espacios exteriores y Unicode entre dispositivos.
+existe una lista para ese PDF, aunque la haya generado otra cuenta, la
+recupera directamente y no vuelve a consumir tokens. La clave del PDF se
+calcula con SHA-256 a partir de su contenido.
 
 Para usar Supabase localmente, añade `SUPABASE_URL` y `SUPABASE_SECRET_KEY` al
 archivo `.env`. En Streamlit Cloud, configúralas en `Settings > Secrets`:
 
 ```toml
 SUPABASE_URL = "https://tu-proyecto.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "tu-clave-publicable"
 SUPABASE_SECRET_KEY = "tu-clave-secreta"
 ```
 
-Usa la clave secreta del servidor, no la clave publicable. La clave debe
-mantenerse privada y no debe exponerse en la interfaz. Configura también copias
-periódicas desde Supabase para una protección adicional.
+La clave publicable se usa para Supabase Auth. La clave secreta se usa solo en
+el servidor para guardar datos y nunca debe exponerse ni subirse a GitHub.
+
+La aplicación exige iniciar sesión antes de permitir subir o consultar dietas.
+Configura en Supabase si los usuarios deben confirmar su correo electrónico
+desde `Authentication > Providers > Email`.
 
 La base de datos se crea automáticamente al guardar la primera lista. Su ruta
 se puede cambiar con la variable de entorno `LISTA_DB_PATH`:
@@ -152,5 +169,7 @@ contiene la API key.
 ## Despliegue público
 
 Al subir esta app a un servicio como Streamlit Community Cloud, configura
-`GEMINI_API_KEY` y `GEMINI_MODEL` como **secrets** de la plataforma en lugar
-de subir el archivo `.env` (que ya está excluido en `.gitignore`).
+`GEMINI_API_KEY`, `GEMINI_MODEL`, `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY` como **secrets** de la
+plataforma en lugar de subir el archivo `.env` (que ya está excluido en
+`.gitignore`).
