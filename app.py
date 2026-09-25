@@ -77,7 +77,36 @@ if generation_job_id:
             return
         future, nombre_pdf = trabajo
         if not future.done():
-            st.info("Leyendo PDF, generando los datos...")
+            st.markdown(
+                """
+                <style>
+                    .loading-indicator {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.65rem;
+                        padding: 0.75rem 1rem;
+                        border-radius: 0.5rem;
+                        background: rgba(49, 51, 63, 0.08);
+                    }
+                    .loading-spinner {
+                        width: 1.1rem;
+                        height: 1.1rem;
+                        border: 0.18rem solid rgba(49, 51, 63, 0.2);
+                        border-top-color: #ff4b4b;
+                        border-radius: 50%;
+                        animation: loading-spin 0.8s linear infinite;
+                    }
+                    @keyframes loading-spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+                <div class="loading-indicator" role="status" aria-live="polite">
+                    <span class="loading-spinner" aria-hidden="true"></span>
+                    <span>Leyendo PDF, generando los datos...</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             return
 
         try:
