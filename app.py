@@ -10,6 +10,7 @@ import html
 import streamlit as st
 from streamlit_local_storage import LocalStorage
 
+from src.ai.gemini_client import CuotaGeminiAgotadaError
 from src.auth.auth_manager import iniciar_sesion, registrar_usuario, restaurar_sesion
 from src.config import CATEGORIAS, GEMINI_API_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
 from src.exports.export_utils import exportar_a_texto
@@ -362,6 +363,9 @@ if generation_job_id:
         except json.JSONDecodeError:
             st.session_state.generation_job_id = None
             st.error("No se ha podido interpretar la respuesta. Inténtalo de nuevo.")
+        except CuotaGeminiAgotadaError as e:
+            st.session_state.generation_job_id = None
+            st.error(str(e))
         except Exception as e:
             st.session_state.generation_job_id = None
             st.error(f"⚠️ Error detallado: {e}")

@@ -1,10 +1,26 @@
 """Comunicación con la API de Gemini: prompt, envío y parseo de la respuesta."""
 
 import json
+import re
+import time
 
 import google.generativeai as genai
 
 from src.config import CATEGORIAS
+
+
+class CuotaGeminiAgotadaError(RuntimeError):
+  """Indica que el proyecto de Gemini no puede aceptar más solicitudes."""
+
+
+def _es_error_de_cuota(error: Exception) -> bool:
+  mensaje = str(error).lower()
+  return "429" in mensaje or "quota exceeded" in mensaje or "rate limit" in mensaje
+
+
+def _segundos_para_reintento(error: Exception) -> int:
+  coincidencia = re.search(r"retry_delay\s*\{\s*seconds:\s*(\d+)", str(error), re.IGNORECASE)
+  return min(int(coincidencia.group(1)), 60) if coincidencia else 5
 
 
 def construir_prompt(texto_dieta: str) -> str:
@@ -79,5 +95,16 @@ def generar_lista_compra(texto_dieta: str, api_key: str, modelo: str) -> dict:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(modelo)
     prompt = construir_prompt(texto_dieta)
-    respuesta = model.generate_content(prompt)
+    for intento in range(2):
+      try:
+        respuesta = model.generate_content(prompt)
+        break
+      except Exception as error:
+        if not _es_error_de_cuota(error):
+          raise
+        if intento == 1:
+          raise CuotaGeminiAgotadaError(
+            "Se ha agotado la cuota de Gemini. Espera a que se renueve o activa la facturación del proyecto."
+          ) from error
+        time.sleep(_segundos_para_reintento(error))
     return parsear_respuesta_json(respuesta.text)
