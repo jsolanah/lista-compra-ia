@@ -12,7 +12,12 @@ from src.auth.auth_manager import iniciar_sesion, registrar_usuario
 from src.config import CATEGORIAS, GEMINI_API_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
 from src.exports.export_utils import exportar_a_texto
 from src.jobs.job_manager import iniciar_procesamiento, obtener_trabajo
-from src.persistence.list_cache import construir_clave_dieta, guardar_lista, obtener_lista
+from src.persistence.list_cache import (
+    construir_clave_dieta,
+    guardar_lista,
+    obtener_dietas_usuario,
+    obtener_lista,
+)
 
 st.set_page_config(page_title="Lista de la Compra Inteligente", page_icon="🛒", layout="centered")
 
@@ -30,6 +35,7 @@ def _limpiar_sesion_usuario():
     st.session_state.lista_compra = None
     st.session_state.checks = {}
     st.session_state.generation_job_id = None
+    st.session_state.nombre_archivo_actual = ""
 
 
 if st.session_state.usuario is None:
@@ -79,6 +85,9 @@ if st.session_state.usuario is None:
 # Barra lateral (sin datos sensibles: solo carga de archivo)
 # --------------------------------------------------------------------------
 
+if "seccion" not in st.session_state:
+    st.session_state.seccion = "Nueva dieta"
+
 with st.sidebar:
     st.header("🛒 Lista de la Compra")
     st.caption(f"Sesión: {st.session_state.usuario['email']}")
@@ -86,9 +95,18 @@ with st.sidebar:
         _limpiar_sesion_usuario()
         st.rerun()
     st.divider()
-    st.caption("Sube el PDF de tu dieta para generar la lista.")
-    archivo_pdf = st.file_uploader("Sube tu PDF de dieta", type=["pdf"])
-    procesar = st.button("🚀 Generar lista de la compra", use_container_width=True, disabled=not archivo_pdf)
+    st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion")
+    if st.session_state.seccion == "Nueva dieta":
+        st.caption("Sube el PDF de tu dieta para generar la lista.")
+        archivo_pdf = st.file_uploader("Sube tu PDF de dieta", type=["pdf"])
+        procesar = st.button(
+            "🚀 Generar lista de la compra",
+            use_container_width=True,
+            disabled=not archivo_pdf,
+        )
+    else:
+        archivo_pdf = None
+        procesar = False
 
 
 # --------------------------------------------------------------------------
@@ -99,6 +117,32 @@ if "lista_compra" not in st.session_state:
     st.session_state.lista_compra = None
 if "checks" not in st.session_state:
     st.session_state.checks = {}
+if "nombre_archivo_actual" not in st.session_state:
+    st.session_state.nombre_archivo_actual = ""
+
+
+if st.session_state.seccion == "Mis dietas":
+    st.title("📚 Mis dietas")
+    st.caption("Abre una dieta guardada sin volver a subir el PDF.")
+    dietas_guardadas = obtener_dietas_usuario(st.session_state.usuario["user_id"])
+
+    if not dietas_guardadas:
+        st.info("Todavía no tienes ninguna dieta guardada.")
+    else:
+        for indice, dieta in enumerate(dietas_guardadas):
+            fecha = dieta["creada_en"][:10] if dieta["creada_en"] else ""
+            etiqueta = dieta["nombre_archivo"]
+            if fecha:
+                etiqueta = f"{etiqueta} · {fecha}"
+            with st.expander(etiqueta, expanded=False):
+                st.caption(f"Hash del PDF: {dieta['nombre_pdf']}")
+                if st.button("Abrir dieta", key=f"abrir_dieta_{indice}"):
+                    st.session_state.lista_compra = dieta["datos"]
+                    st.session_state.checks = {}
+                    st.session_state.nombre_archivo_actual = dieta["nombre_archivo"]
+                    st.session_state.seccion = "Nueva dieta"
+                    st.rerun()
+    st.stop()
 
 
 # --------------------------------------------------------------------------
@@ -112,8 +156,10 @@ if procesar and archivo_pdf:
     pdf_bytes = archivo_pdf.getvalue()
     clave_dieta = construir_clave_dieta(pdf_bytes)
     usuario_id = st.session_state.usuario["user_id"]
+    st.session_state.nombre_archivo_actual = archivo_pdf.name
     lista_guardada = obtener_lista(usuario_id, clave_dieta)
     if lista_guardada is not None and "plan_semanal" in lista_guardada:
+        guardar_lista(usuario_id, clave_dieta, lista_guardada, archivo_pdf.name)
         st.session_state.lista_compra = lista_guardada
         st.session_state.checks = {}
         st.session_state.generation_job_id = None
@@ -177,7 +223,12 @@ if generation_job_id:
 
         try:
             st.session_state.lista_compra = future.result()
-            guardar_lista(st.session_state.usuario["user_id"], clave_dieta, st.session_state.lista_compra)
+            guardar_lista(
+                st.session_state.usuario["user_id"],
+                clave_dieta,
+                st.session_state.lista_compra,
+                st.session_state.nombre_archivo_actual,
+            )
             st.session_state.checks = {}
             st.session_state.generation_job_id = None
             st.rerun()

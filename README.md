@@ -11,6 +11,8 @@ Dieta/
 ├── app.py                  # Punto de entrada de Streamlit (interfaz)
 ├── src/
 │   ├── config.py           # Carga de .env, API key, modelo y categorías
+│   ├── auth/
+│   │   └── auth_manager.py  # Registro e inicio de sesión con Supabase Auth
 │   ├── ai/
 │   │   └── gemini_client.py # Prompt y llamada a la API de Gemini
 │   ├── documents/
@@ -110,12 +112,21 @@ de usuarios y dietas:
 create table public.listas_compra (
    usuario_id uuid not null references auth.users(id) on delete cascade,
    nombre_pdf text not null,
+   nombre_archivo text,
    datos_json jsonb not null,
    creada_en timestamptz not null default now(),
    primary key (usuario_id, nombre_pdf)
 );
 
 alter table public.listas_compra enable row level security;
+```
+
+Si ya tienes la tabla nueva con `usuario_id` pero sin `nombre_archivo`, añade la
+columna:
+
+```sql
+alter table public.listas_compra
+add column if not exists nombre_archivo text;
 ```
 
 Si ya habías creado la tabla anterior sin `usuario_id`, renómbrala antes de
@@ -143,6 +154,9 @@ La clave publicable se usa para Supabase Auth. La clave secreta se usa solo en
 el servidor para guardar datos y nunca debe exponerse ni subirse a GitHub.
 
 La aplicación exige iniciar sesión antes de permitir subir o consultar dietas.
+En **Mis dietas** cada usuario puede abrir sus listas guardadas sin volver a
+subir el PDF. Si otro usuario sube el mismo PDF, se reutiliza la respuesta de
+Gemini y se crea su propia entrada en el historial.
 Configura en Supabase si los usuarios deben confirmar su correo electrónico
 desde `Authentication > Providers > Email`.
 
