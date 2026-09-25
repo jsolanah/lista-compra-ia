@@ -260,7 +260,6 @@ if st.session_state.seccion == "Mis dietas":
             if fecha:
                 etiqueta = f"{etiqueta} · {fecha}"
             with st.expander(etiqueta, expanded=False):
-                st.caption(f"Hash del PDF: {dieta['nombre_pdf']}")
                 if st.button("Abrir dieta", key=f"abrir_dieta_{indice}"):
                     st.session_state.lista_compra = dieta["datos"]
                     st.session_state.checks = {}
