@@ -52,6 +52,8 @@ def _leer_cookie(nombre: str):
 
 if "usuario" not in st.session_state:
     st.session_state.usuario = None
+if "cookie_pendiente" in st.session_state:
+    _guardar_cookie_sesion(st.session_state.pop("cookie_pendiente"))
 if st.session_state.usuario is None:
     access_token = _leer_cookie("supabase_access_token")
     refresh_token = _leer_cookie("supabase_refresh_token")
@@ -89,7 +91,7 @@ if st.session_state.usuario is None:
         if enviar_login:
             try:
                 st.session_state.usuario = iniciar_sesion(email_login, password_login)
-                _guardar_cookie_sesion(st.session_state.usuario)
+                st.session_state.cookie_pendiente = st.session_state.usuario
                 st.session_state.lista_compra = None
                 st.session_state.checks = {}
                 st.rerun()
@@ -108,7 +110,7 @@ if st.session_state.usuario is None:
                     st.success("Cuenta creada. Revisa tu correo para confirmar la cuenta.")
                 else:
                     st.session_state.usuario = usuario_nuevo
-                    _guardar_cookie_sesion(st.session_state.usuario)
+                    st.session_state.cookie_pendiente = st.session_state.usuario
                     st.session_state.lista_compra = None
                     st.session_state.checks = {}
                     st.rerun()
