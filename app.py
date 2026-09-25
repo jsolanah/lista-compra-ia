@@ -67,11 +67,6 @@ def _leer_cookie(nombre: str):
     return almacen_local.getItem(nombre)
 
 
-if "sidebar_inicial_cerrado" not in st.session_state:
-    _controlar_sidebar("cerrar", "cerrar_sidebar_inicio")
-    st.session_state.sidebar_inicial_cerrado = True
-
-
 # --------------------------------------------------------------------------
 # Autenticacion
 # --------------------------------------------------------------------------
@@ -98,6 +93,7 @@ def _limpiar_sesion_usuario():
     st.session_state.checks = {}
     st.session_state.generation_job_id = None
     st.session_state.nombre_archivo_actual = ""
+    st.session_state.sidebar_necesita_cierre = True
 
 
 if st.session_state.usuario is None:
@@ -142,6 +138,7 @@ if st.session_state.usuario is None:
                     st.rerun()
             except Exception:
                 st.error("No se ha podido crear la cuenta. Comprueba el correo y la contraseña.")
+    _controlar_sidebar("cerrar", "cerrar_sidebar_auth")
     st.stop()
 
 
@@ -173,6 +170,10 @@ with st.sidebar:
     else:
         archivo_pdf = None
         procesar = False
+
+if st.session_state.get("sidebar_necesita_cierre", True):
+    _controlar_sidebar("cerrar", "cerrar_sidebar_sesion")
+    st.session_state.sidebar_necesita_cierre = False
 
 
 # --------------------------------------------------------------------------
