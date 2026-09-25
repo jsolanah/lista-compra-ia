@@ -55,6 +55,15 @@ def _decodificar_datos(datos) -> dict:
     return json.loads(datos) if isinstance(datos, str) else datos
 
 
+def _extraer_filas(respuesta) -> list:
+    if isinstance(respuesta, dict):
+        return respuesta.get("data") or []
+    try:
+        return respuesta.data or []
+    except AttributeError:
+        return []
+
+
 def obtener_lista(nombre_pdf: str) -> dict | None:
     nombre_normalizado = normalizar_nombre_pdf(nombre_pdf)
     if _usar_supabase():
@@ -66,7 +75,7 @@ def obtener_lista(nombre_pdf: str) -> dict | None:
             .limit(1)
             .execute()
         )
-        filas = getattr(respuesta, "data", None) or []
+        filas = _extraer_filas(respuesta)
         return _decodificar_datos(filas[0]["datos_json"]) if filas else None
 
     with closing(_connect()) as connection:
