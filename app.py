@@ -172,14 +172,9 @@ st.title("🛒 Lista de la compra")
 
 def _mostrar_controles_usuario(en_sidebar: bool = False):
     def renderizar_controles():
-        st.markdown(
-            f'<p class="session-label">Sesión activa: <strong>{html.escape(st.session_state.usuario["email"])}</strong></p>',
-            unsafe_allow_html=True,
-        )
-        if st.button("Cerrar sesión", use_container_width=True, key=f"cerrar_sesion_{en_sidebar}"):
-            _limpiar_sesion_usuario()
-            st.rerun()
         st.radio("Sección", ["Nueva dieta", "Mis dietas"], key="seccion", horizontal=False)
+        archivo = None
+        generar = False
         if st.session_state.seccion == "Nueva dieta":
             st.caption("Sube el PDF de tu dieta para generar la lista.")
             archivo = st.file_uploader("Sube tu PDF de dieta", type=["pdf"], key=f"archivo_pdf_{en_sidebar}")
@@ -189,8 +184,15 @@ def _mostrar_controles_usuario(en_sidebar: bool = False):
                 disabled=not archivo,
                 key=f"generar_lista_{en_sidebar}",
             )
-            return archivo, generar
-        return None, False
+        st.divider()
+        st.markdown(
+            f'<p class="session-label">Sesión activa: <strong>{html.escape(st.session_state.usuario["email"])}</strong></p>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Cerrar sesión", use_container_width=True, key=f"cerrar_sesion_{en_sidebar}"):
+            _limpiar_sesion_usuario()
+            st.rerun()
+        return archivo, generar
 
     if en_sidebar:
         with st.sidebar:
