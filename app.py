@@ -87,6 +87,8 @@ if st.session_state.usuario is None:
 
 if "seccion" not in st.session_state:
     st.session_state.seccion = "Nueva dieta"
+if "seccion_pendiente" in st.session_state:
+    st.session_state.seccion = st.session_state.pop("seccion_pendiente")
 
 with st.sidebar:
     st.header("🛒 Lista de la Compra")
@@ -140,7 +142,7 @@ if st.session_state.seccion == "Mis dietas":
                     st.session_state.lista_compra = dieta["datos"]
                     st.session_state.checks = {}
                     st.session_state.nombre_archivo_actual = dieta["nombre_archivo"]
-                    st.session_state.seccion = "Nueva dieta"
+                    st.session_state.seccion_pendiente = "Nueva dieta"
                     st.rerun()
     st.stop()
 
