@@ -25,6 +25,9 @@ def _obtener_configuracion(nombre: str, valor_por_defecto: str) -> str:
 # interfaz pública.
 GEMINI_API_KEY = _obtener_configuracion("GEMINI_API_KEY", "")
 GEMINI_MODEL = _obtener_configuracion("GEMINI_MODEL", "gemini-3.6-flash")
+SUPABASE_URL = _obtener_configuracion("SUPABASE_URL", "")
+SUPABASE_SECRET_KEY = _obtener_configuracion("SUPABASE_SECRET_KEY", "")
+SUPABASE_KEY = SUPABASE_SECRET_KEY or _obtener_configuracion("SUPABASE_KEY", "")
 if GEMINI_MODEL in {
     "gemini-1.5-flash",
     "gemini-1.5-flash-latest",

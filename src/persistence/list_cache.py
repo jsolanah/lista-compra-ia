@@ -4,10 +4,14 @@ import json
 import os
 import sqlite3
 import unicodedata
+from contextlib import closing
 from pathlib import Path
+
+from src.config import SUPABASE_KEY, SUPABASE_URL
 
 
 DB_PATH = Path(os.getenv("LISTA_DB_PATH", "data/listas_compra.db"))
+_supabase_client = None
 
 
 def normalizar_nombre_pdf(nombre_pdf: str) -> str:
@@ -30,9 +34,41 @@ def _connect() -> sqlite3.Connection:
     return connection
 
 
+def _obtener_cliente_supabase():
+    global _supabase_client
+    if _supabase_client is None:
+        try:
+            from supabase import create_client
+        except ImportError as error:
+            raise RuntimeError(
+                "Falta instalar la dependencia supabase. Ejecuta: pip install -r requirements.txt"
+            ) from error
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _supabase_client
+
+
+def _usar_supabase() -> bool:
+    return bool(SUPABASE_URL and SUPABASE_KEY)
+
+
+def _decodificar_datos(datos) -> dict:
+    return json.loads(datos) if isinstance(datos, str) else datos
+
+
 def obtener_lista(nombre_pdf: str) -> dict | None:
     nombre_normalizado = normalizar_nombre_pdf(nombre_pdf)
-    with _connect() as connection:
+    if _usar_supabase():
+        respuesta = (
+            _obtener_cliente_supabase()
+            .table("listas_compra")
+            .select("datos_json")
+            .eq("nombre_pdf", nombre_normalizado)
+            .maybe_single()
+            .execute()
+        )
+        return _decodificar_datos(respuesta.data["datos_json"]) if respuesta.data else None
+
+    with closing(_connect()) as connection:
         fila = connection.execute(
             "SELECT datos_json FROM listas_compra WHERE nombre_pdf = ?",
             (nombre_normalizado,),
@@ -45,13 +81,20 @@ def obtener_lista(nombre_pdf: str) -> dict | None:
                 """,
                 (nombre_pdf,),
             ).fetchone()
-    return json.loads(fila[0]) if fila else None
+    return _decodificar_datos(fila[0]) if fila else None
 
 
 def guardar_lista(nombre_pdf: str, datos: dict) -> None:
     nombre_normalizado = normalizar_nombre_pdf(nombre_pdf)
+    if _usar_supabase():
+        _obtener_cliente_supabase().table("listas_compra").upsert(
+            {"nombre_pdf": nombre_normalizado, "datos_json": datos},
+            on_conflict="nombre_pdf",
+        ).execute()
+        return
+
     datos_json = json.dumps(datos, ensure_ascii=False)
-    with _connect() as connection:
+    with closing(_connect()) as connection:
         connection.execute(
             """
             INSERT INTO listas_compra (nombre_pdf, datos_json)
@@ -62,3 +105,4 @@ def guardar_lista(nombre_pdf: str, datos: dict) -> None:
             """,
             (nombre_normalizado, datos_json),
         )
+        connection.commit()

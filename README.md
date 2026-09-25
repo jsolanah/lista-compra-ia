@@ -20,7 +20,7 @@ Dieta/
 │   ├── jobs/
 │   │   └── job_manager.py   # Trabajos de generación en segundo plano
 │   └── persistence/
-│       └── list_cache.py    # Caché SQLite de listas generadas
+│       └── list_cache.py    # Persistencia Supabase (SQLite en local)
 ├── .streamlit/
 │   └── config.toml         # Oculta el menú/toolbar de desarrollador
 ├── requirements.txt
@@ -40,6 +40,8 @@ Dieta/
    ```
    GEMINI_API_KEY=tu_clave_aqui
    GEMINI_MODEL=gemini-3.6-flash
+   SUPABASE_URL=https://tu-proyecto.supabase.co
+   SUPABASE_SECRET_KEY=tu-clave-secreta
    ```
 
    Este archivo se lee en el servidor y **no se muestra ni es editable desde
@@ -74,8 +76,8 @@ streamlit run app.py
 La aplicación estará disponible en `http://localhost:8501`. Debe iniciarse
 con `streamlit run app.py`, no con `python app.py`.
 
-La base de datos local se crea automáticamente en
-`data/listas_compra.db` al guardar la primera lista.
+Si no se configuran las credenciales de Supabase, la base de datos local se
+crea automáticamente en `data/listas_compra.db`.
 
 ### Ejecución rápida
 
@@ -87,7 +89,8 @@ Se abrirá en `http://localhost:8501`.
 
 ## Base de datos y caché
 
-La aplicación usa SQLite para guardar las listas generadas en:
+En producción, la aplicación usa Supabase para guardar las listas generadas.
+En desarrollo, si no hay credenciales de Supabase, utiliza SQLite en:
 
 ```text
 data/listas_compra.db
@@ -99,10 +102,32 @@ Cada registro contiene:
 - La lista de la compra y el plan de comidas semanal generados en formato JSON.
 - La fecha de generación.
 
+En el editor SQL de Supabase, crea la tabla una vez:
+
+```sql
+create table public.listas_compra (
+   nombre_pdf text primary key,
+   datos_json jsonb not null,
+   creada_en timestamptz not null default now()
+);
+```
+
 Antes de llamar a Gemini, la aplicación consulta esta base de datos. Si ya
 existe una lista para ese nombre de PDF, la recupera directamente y no vuelve
 a consumir tokens. Los nombres se normalizan para ignorar diferencias de
 mayúsculas, espacios exteriores y Unicode entre dispositivos.
+
+Para usar Supabase localmente, añade `SUPABASE_URL` y `SUPABASE_SECRET_KEY` al
+archivo `.env`. En Streamlit Cloud, configúralas en `Settings > Secrets`:
+
+```toml
+SUPABASE_URL = "https://tu-proyecto.supabase.co"
+SUPABASE_SECRET_KEY = "tu-clave-secreta"
+```
+
+Usa la clave secreta del servidor, no la clave publicable. La clave debe
+mantenerse privada y no debe exponerse en la interfaz. Configura también copias
+periódicas desde Supabase para una protección adicional.
 
 La base de datos se crea automáticamente al guardar la primera lista. Su ruta
 se puede cambiar con la variable de entorno `LISTA_DB_PATH`:
@@ -111,10 +136,9 @@ se puede cambiar con la variable de entorno `LISTA_DB_PATH`:
 LISTA_DB_PATH=/ruta/persistente/listas_compra.db
 ```
 
-En un despliegue público, la base debe estar en un almacenamiento persistente.
-Si la plataforma reinicia la aplicación y usa un disco efímero, las listas
-guardadas se perderán. La base local está excluida de Git mediante `.gitignore`
-y no contiene la API key.
+Al activar Supabase, los datos dejan de depender del disco efímero del servidor
+de Streamlit. La base local está excluida de Git mediante `.gitignore` y no
+contiene la API key.
 
 ## Uso
 
