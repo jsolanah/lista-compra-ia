@@ -25,6 +25,8 @@ Dieta/
 │       └── list_cache.py    # Persistencia Supabase (SQLite en local)
 ├── .streamlit/
 │   └── config.toml         # Oculta el menú/toolbar de desarrollador
+├── tests/
+│   └── test_list_cache.py   # Pruebas de caché, aislamiento e historial
 ├── requirements.txt
 └── .env                     # API key (no se sube a git, ver .gitignore)
 ```
@@ -170,6 +172,14 @@ LISTA_DB_PATH=/ruta/persistente/listas_compra.db
 Al activar Supabase, los datos dejan de depender del disco efímero del servidor
 de Streamlit. La base local está excluida de Git mediante `.gitignore` y no
 contiene la API key.
+
+## Pruebas
+
+Ejecuta las pruebas desde la raíz del proyecto:
+
+```powershell
+python -m unittest discover -s tests -v
+```
 
 ## Uso
 
