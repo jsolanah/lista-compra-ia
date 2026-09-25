@@ -188,7 +188,7 @@ if "nombre_archivo_actual" not in st.session_state:
 
 
 if st.session_state.seccion == "Mis dietas":
-    st.title("📚 Mis dietas")
+    st.subheader("📚 Mis dietas")
     st.caption("Abre una dieta guardada sin volver a subir el PDF.")
     dietas_guardadas = obtener_dietas_usuario(st.session_state.usuario["user_id"])
 
@@ -214,9 +214,6 @@ if st.session_state.seccion == "Mis dietas":
 # --------------------------------------------------------------------------
 # Procesamiento
 # --------------------------------------------------------------------------
-
-st.title("🛒 Generador de Lista de la Compra")
-st.caption("Sube el PDF de tu dieta y deja que la IA construya tu lista, clasificada y consolidada.")
 
 if procesar and archivo_pdf:
     pdf_bytes = archivo_pdf.getvalue()
