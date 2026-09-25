@@ -114,8 +114,8 @@ if datos:
             filas = []
             for dia in semana.get("dias", []):
                 comidas = dia.get("comidas", [])
-                texto_comidas = "\n".join(
-                    f"{comida.get('tipo', 'Comida')}: {comida.get('descripcion', '')}"
+                texto_comidas = "  \n".join(
+                    f"**{comida.get('tipo', 'Comida')}**: {comida.get('descripcion', '')}"
                     for comida in comidas
                     if comida.get("descripcion")
                 )
