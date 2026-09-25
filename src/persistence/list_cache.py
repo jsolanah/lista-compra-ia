@@ -63,10 +63,11 @@ def obtener_lista(nombre_pdf: str) -> dict | None:
             .table("listas_compra")
             .select("datos_json")
             .eq("nombre_pdf", nombre_normalizado)
-            .maybe_single()
+            .limit(1)
             .execute()
         )
-        return _decodificar_datos(respuesta.data["datos_json"]) if respuesta.data else None
+        filas = getattr(respuesta, "data", None) or []
+        return _decodificar_datos(filas[0]["datos_json"]) if filas else None
 
     with closing(_connect()) as connection:
         fila = connection.execute(
