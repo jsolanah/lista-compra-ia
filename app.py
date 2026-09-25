@@ -48,8 +48,8 @@ def _guardar_cookie_sesion(usuario: dict):
 
 
 def _borrar_cookie_sesion():
-    almacen_local.deleteItem("supabase_access_token", key="delete_access_token")
-    almacen_local.deleteItem("supabase_refresh_token", key="delete_refresh_token")
+    almacen_local.eraseItem("supabase_access_token", key="erase_access_token")
+    almacen_local.eraseItem("supabase_refresh_token", key="erase_refresh_token")
 
 
 def _leer_cookie(nombre: str):
